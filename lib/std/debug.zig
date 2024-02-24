@@ -18,6 +18,11 @@ const native_arch = builtin.cpu.arch;
 const native_os = builtin.os.tag;
 const native_endian = native_arch.endian();
 
+pub const memory_safety = switch (builtin.mode) {
+    .Debug, .ReleaseSafe => true,
+    .ReleaseFast, .ReleaseSmall => false,
+};
+
 pub const runtime_safety = switch (builtin.mode) {
     .Debug, .ReleaseSafe => true,
     .ReleaseFast, .ReleaseSmall => false,

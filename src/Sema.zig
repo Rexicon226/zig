@@ -5513,7 +5513,33 @@ fn zirStoreNode(sema: *Sema, block: *Block, inst: Zir.Inst.Index) CompileError!v
         .store_safe
     else
         .store;
-    return sema.storePtr2(block, src, ptr, ptr_src, operand, operand_src, air_tag);
+    try sema.storePtr2(block, src, ptr, ptr_src, operand, operand_src, air_tag);
+
+    // Insert a memory track if the operand is undefined.
+    ret: {
+        if (block.wantSafety() and !block.is_comptime) {
+            if (try sema.resolveValue(operand)) |maybe_undef| {
+                const child_ty = sema.typeOf(ptr).childType(mod).zigTypeTag(mod);
+
+                // Make sure it's actually setting a pointer to undefined.
+                if (maybe_undef.isUndef(mod) and (child_ty == .Pointer)) {
+
+                    // We can insert a airCall after the store op so that it's tracked.
+                    const int_ptr = try block.addUnOp(.int_from_ptr, ptr);
+                    const track_fn = try sema.getBuiltin("memchanTrackUndefined");
+                    try sema.callBuiltin(block, ptr_src, track_fn, .auto, &.{int_ptr}, .call);
+                }
+                break :ret;
+            }
+
+            // // Now we know that we aren't storing an undefined pointer, so we can add a resolve check
+            // // that will remove the pointer from the tracked list if it's on it.
+            const int_ptr = try block.addUnOp(.int_from_ptr, ptr);
+            const track_fn = try sema.getBuiltin("memchanRemoveUndefined");
+            try sema.callBuiltin(block, ptr_src, track_fn, .auto, &.{int_ptr}, .call);
+            break :ret;
+        }
+    }
 }
 
 fn zirStr(sema: *Sema, inst: Zir.Inst.Index) CompileError!Air.Inst.Ref {
@@ -6935,6 +6961,52 @@ fn callBuiltin(
     }
 
     _ = try sema.analyzeCall(
+        block,
+        builtin_fn,
+        func_ty,
+        call_src,
+        call_src,
+        modifier,
+        false,
+        .{ .resolved = .{ .src = call_src, .args = args } },
+        null,
+        operation,
+    );
+}
+
+/// Allows for return values.
+fn callBuiltin2(
+    sema: *Sema,
+    block: *Block,
+    call_src: LazySrcLoc,
+    builtin_fn: Air.Inst.Ref,
+    modifier: std.builtin.CallModifier,
+    args: []const Air.Inst.Ref,
+    operation: CallOperation,
+) !Air.Inst.Ref {
+    const mod = sema.mod;
+    const callee_ty = sema.typeOf(builtin_fn);
+    const func_ty = func_ty: {
+        switch (callee_ty.zigTypeTag(mod)) {
+            .Fn => break :func_ty callee_ty,
+            .Pointer => {
+                const ptr_info = callee_ty.ptrInfo(mod);
+                if (ptr_info.flags.size == .One and Type.fromInterned(ptr_info.child).zigTypeTag(mod) == .Fn) {
+                    break :func_ty Type.fromInterned(ptr_info.child);
+                }
+            },
+            else => {},
+        }
+        std.debug.panic("type '{}' is not a function calling builtin fn", .{callee_ty.fmt(mod)});
+    };
+
+    const func_ty_info = mod.typeToFunc(func_ty).?;
+    const fn_params_len = func_ty_info.param_types.len;
+    if (args.len != fn_params_len or (func_ty_info.is_var_args and args.len < fn_params_len)) {
+        std.debug.panic("parameter count mismatch calling builtin fn, expected {d}, found {d}", .{ fn_params_len, args.len });
+    }
+
+    return try sema.analyzeCall(
         block,
         builtin_fn,
         func_ty,
@@ -32477,6 +32549,23 @@ fn analyzeLoad(
         return sema.fail(block, ptr_src, "unable to determine vector element index of type '{}'", .{
             ptr_ty.fmt(sema.mod),
         });
+    }
+
+    // Insert a memchan undefined check here. We do not prevent derefs of undefined pointers, as that
+    // would be a passive strategy. What we need to do is poison the deref. We check if the child_ty is a pointer
+    // in the store, so if elem_ty here is a pointer, we can check if ptr is poisoned, and add load_inst
+    // onto the list of bad pointers. Storing into it wouldn't work because it's undefined. It just doesn't exist.
+    if (block.wantSafety() and elem_ty.zigTypeTag(mod) == .Pointer and !block.is_comptime) {
+        const int_ptr = try block.addUnOp(.int_from_ptr, ptr);
+        const track_fn = try sema.getBuiltin("memchanCheckUndefined");
+        try sema.callBuiltin(
+            block,
+            ptr_src,
+            track_fn,
+            .auto,
+            &.{int_ptr},
+            .call,
+        );
     }
 
     return block.addTyOp(.load, elem_ty, ptr);

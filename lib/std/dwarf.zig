@@ -965,7 +965,7 @@ pub const DwarfInfo = struct {
             // specified by DW_AT.low_pc or to some other value encoded
             // in the list itself.
             // If no starting value is specified use zero.
-            const base_address = compile_unit.die.getAttrAddr(di, AT.low_pc, compile_unit.*) catch |err| switch (err) {
+            const base_address: u64 = compile_unit.die.getAttrAddr(di, AT.low_pc, compile_unit.*) catch |err| switch (err) {
                 error.MissingDebugInfo => 0,
                 else => return err,
             };

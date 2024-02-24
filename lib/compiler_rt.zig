@@ -234,5 +234,8 @@ comptime {
         _ = @import("compiler_rt/memcmp.zig");
         _ = @import("compiler_rt/bcmp.zig");
         _ = @import("compiler_rt/ssp.zig");
+
+        // Memchan
+        _ = @import("compiler_rt/msan/mem_chan.zig");
     }
 }

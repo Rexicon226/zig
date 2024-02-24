@@ -903,6 +903,7 @@ pub const panic_messages = struct {
     pub const memcpy_len_mismatch = "@memcpy arguments have non-equal lengths";
     pub const memcpy_alias = "@memcpy arguments alias";
     pub const noreturn_returned = "'noreturn' function returned";
+    // pub const deref_undefined_pointer = "attempted to dereference an undefined pointer";
 };
 
 pub noinline fn returnError(st: *StackTrace) void {
@@ -916,6 +917,28 @@ pub inline fn addErrRetTraceAddr(st: *StackTrace, addr: usize) void {
         st.instruction_addresses[st.index] = addr;
 
     st.index += 1;
+}
+
+const maybeTrackUndefined = @extern(?*const fn (usize) callconv(.C) void, .{ .name = "__memchan_trackUndefined" });
+const maybeRemoveUndefined = @extern(?*const fn (usize) callconv(.C) void, .{ .name = "__memchan_removeUndefined" });
+const maybeCheckUndefined = @extern(?*const fn (usize) callconv(.C) void, .{ .name = "__memchan_checkUndefined" });
+
+pub fn memchanTrackUndefined(addr: usize) void {
+    if (maybeTrackUndefined) |trackUndefined| {
+        return trackUndefined(addr);
+    } else @panic("failed to link `__memchan_trackUndefined`");
+}
+
+pub fn memchanRemoveUndefined(addr: usize) void {
+    if (maybeRemoveUndefined) |removeUndefined| {
+        return removeUndefined(addr);
+    } else @panic("failed to link `__memchan_removeUndefined`");
+}
+
+pub fn memchanCheckUndefined(addr: usize) void {
+    if (maybeCheckUndefined) |checkUndefined| {
+        return checkUndefined(addr);
+    } else @panic("failed to link `__memchan_checkUndefined`");
 }
 
 const std = @import("std.zig");

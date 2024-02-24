@@ -7848,6 +7848,7 @@ fn store(
     const mod = self.bin_file.comp.module.?;
     const src_ty = ptr_ty.childType(mod);
     if (!src_ty.hasRuntimeBitsIgnoreComptime(mod)) return;
+
     switch (ptr_mcv) {
         .none,
         .unreach,
