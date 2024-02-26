@@ -6974,52 +6974,6 @@ fn callBuiltin(
     );
 }
 
-/// Allows for return values.
-fn callBuiltin2(
-    sema: *Sema,
-    block: *Block,
-    call_src: LazySrcLoc,
-    builtin_fn: Air.Inst.Ref,
-    modifier: std.builtin.CallModifier,
-    args: []const Air.Inst.Ref,
-    operation: CallOperation,
-) !Air.Inst.Ref {
-    const mod = sema.mod;
-    const callee_ty = sema.typeOf(builtin_fn);
-    const func_ty = func_ty: {
-        switch (callee_ty.zigTypeTag(mod)) {
-            .Fn => break :func_ty callee_ty,
-            .Pointer => {
-                const ptr_info = callee_ty.ptrInfo(mod);
-                if (ptr_info.flags.size == .One and Type.fromInterned(ptr_info.child).zigTypeTag(mod) == .Fn) {
-                    break :func_ty Type.fromInterned(ptr_info.child);
-                }
-            },
-            else => {},
-        }
-        std.debug.panic("type '{}' is not a function calling builtin fn", .{callee_ty.fmt(mod)});
-    };
-
-    const func_ty_info = mod.typeToFunc(func_ty).?;
-    const fn_params_len = func_ty_info.param_types.len;
-    if (args.len != fn_params_len or (func_ty_info.is_var_args and args.len < fn_params_len)) {
-        std.debug.panic("parameter count mismatch calling builtin fn, expected {d}, found {d}", .{ fn_params_len, args.len });
-    }
-
-    return try sema.analyzeCall(
-        block,
-        builtin_fn,
-        func_ty,
-        call_src,
-        call_src,
-        modifier,
-        false,
-        .{ .resolved = .{ .src = call_src, .args = args } },
-        null,
-        operation,
-    );
-}
-
 const CallOperation = enum {
     call,
     @"@call",
