@@ -11,7 +11,7 @@ const log = std.log.scoped(.memchan);
 pub fn trackUndefined(addr: usize) callconv(.C) void {
     @setRuntimeSafety(false);
 
-    log.err("Tracking {x}", .{addr});
+    log.info("Tracking {x}", .{addr});
     ms.trackUndefined(addr) catch @panic("OOM");
 }
 
@@ -27,7 +27,7 @@ pub fn removeUndefined(addr: usize) callconv(.C) void {
 pub fn checkUndefined(addr: usize) callconv(.C) void {
     @setRuntimeSafety(false);
 
-    log.err("Checking {x}", .{addr});
+    log.info("Checking {x}", .{addr});
     const is_undefined = ms.checkUndefined(addr);
     if (is_undefined) {
         log.err("attempted to dereference undefined pointer", .{});
