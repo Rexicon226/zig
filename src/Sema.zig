@@ -19533,15 +19533,6 @@ fn analyzeRet(
         return sema.retWithErrTracing(block, src, is_non_err, air_tag, operand);
     }
 
-    if (block.wantSafety()) {
-        const operand_index = operand.toIndex().?;
-        const operand_inst = sema.air_instructions.items(.tag)[@intFromEnum(operand_index)];
-
-        if (operand_inst == .alloc) {
-            return sema.fail(block, operand_src, "returning pointer to stack variable", .{});
-        }
-    }
-
     _ = try block.addUnOp(air_tag, operand);
 
     return always_noreturn;
