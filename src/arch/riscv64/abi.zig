@@ -109,6 +109,7 @@ pub fn classifySystemV(ty: Type, mod: *Module) [8]Class {
         },
         .Optional => {
             if (ty.isPtrLikeOptional(mod)) {
+                result[0] = .integer;
                 return result;
             }
             result[0] = .integer;
