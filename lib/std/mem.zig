@@ -8,6 +8,9 @@ const testing = std.testing;
 const Endian = std.builtin.Endian;
 const native_endian = builtin.cpu.arch.endian();
 
+/// Deprecated, use `std.hint.doNotOptimizeAway`
+pub const doNotOptimizeAway = @import("hint.zig").doNotOptimizeAway;
+
 /// Compile time known minimum page size.
 /// https://github.com/ziglang/zig/issues/4082
 pub const page_size = switch (builtin.cpu.arch) {
@@ -4207,95 +4210,6 @@ pub fn alignForwardLog2(addr: usize, log2_alignment: u8) usize {
 }
 
 pub const alignForwardGeneric = @compileError("renamed to alignForward");
-
-/// Force an evaluation of the expression; this tries to prevent
-/// the compiler from optimizing the computation away even if the
-/// result eventually gets discarded.
-// TODO: use @declareSideEffect() when it is available - https://github.com/ziglang/zig/issues/6168
-pub fn doNotOptimizeAway(val: anytype) void {
-    if (@inComptime()) return;
-
-    const max_gp_register_bits = @bitSizeOf(c_long);
-    const t = @typeInfo(@TypeOf(val));
-    switch (t) {
-        .Void, .Null, .ComptimeInt, .ComptimeFloat => return,
-        .Enum => doNotOptimizeAway(@intFromEnum(val)),
-        .Bool => doNotOptimizeAway(@intFromBool(val)),
-        .Int => {
-            const bits = t.Int.bits;
-            if (bits <= max_gp_register_bits and builtin.zig_backend != .stage2_c) {
-                const val2 = @as(
-                    std.meta.Int(t.Int.signedness, @max(8, std.math.ceilPowerOfTwoAssert(u16, bits))),
-                    val,
-                );
-                asm volatile (""
-                    :
-                    : [val2] "r" (val2),
-                );
-            } else doNotOptimizeAway(&val);
-        },
-        .Float => {
-            if ((t.Float.bits == 32 or t.Float.bits == 64) and builtin.zig_backend != .stage2_c) {
-                asm volatile (""
-                    :
-                    : [val] "rm" (val),
-                );
-            } else doNotOptimizeAway(&val);
-        },
-        .Pointer => {
-            if (builtin.zig_backend == .stage2_c) {
-                doNotOptimizeAwayC(val);
-            } else {
-                asm volatile (""
-                    :
-                    : [val] "m" (val),
-                    : "memory"
-                );
-            }
-        },
-        .Array => {
-            if (t.Array.len * @sizeOf(t.Array.child) <= 64) {
-                for (val) |v| doNotOptimizeAway(v);
-            } else doNotOptimizeAway(&val);
-        },
-        else => doNotOptimizeAway(&val),
-    }
-}
-
-/// .stage2_c doesn't support asm blocks yet, so use volatile stores instead
-var deopt_target: if (builtin.zig_backend == .stage2_c) u8 else void = undefined;
-fn doNotOptimizeAwayC(ptr: anytype) void {
-    const dest = @as(*volatile u8, @ptrCast(&deopt_target));
-    for (asBytes(ptr)) |b| {
-        dest.* = b;
-    }
-    dest.* = 0;
-}
-
-test doNotOptimizeAway {
-    comptime doNotOptimizeAway("test");
-
-    doNotOptimizeAway(null);
-    doNotOptimizeAway(true);
-    doNotOptimizeAway(0);
-    doNotOptimizeAway(0.0);
-    doNotOptimizeAway(@as(u1, 0));
-    doNotOptimizeAway(@as(u3, 0));
-    doNotOptimizeAway(@as(u8, 0));
-    doNotOptimizeAway(@as(u16, 0));
-    doNotOptimizeAway(@as(u32, 0));
-    doNotOptimizeAway(@as(u64, 0));
-    doNotOptimizeAway(@as(u128, 0));
-    doNotOptimizeAway(@as(u13, 0));
-    doNotOptimizeAway(@as(u37, 0));
-    doNotOptimizeAway(@as(u96, 0));
-    doNotOptimizeAway(@as(u200, 0));
-    doNotOptimizeAway(@as(f32, 0.0));
-    doNotOptimizeAway(@as(f64, 0.0));
-    doNotOptimizeAway([_]u8{0} ** 4);
-    doNotOptimizeAway([_]u8{0} ** 100);
-    doNotOptimizeAway(@as(std.builtin.Endian, .little));
-}
 
 test alignForward {
     try testing.expect(alignForward(usize, 1, 1) == 1);

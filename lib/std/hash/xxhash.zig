@@ -468,16 +468,9 @@ pub const XxHash3 = struct {
         return if (native_endian == .big) @byteSwap(x) else x;
     }
 
-    inline fn disableAutoVectorization(x: anytype) void {
-        if (!@inComptime()) asm volatile (""
-            :
-            : [x] "r" (x),
-        );
-    }
-
     inline fn mix16(seed: u64, input: []const u8, secret: []const u8) u64 {
         const blk: [4]u64 = @bitCast([_][16]u8{ input[0..16].*, secret[0..16].* });
-        disableAutoVectorization(seed);
+        std.hint.doNotOptimizeAway(seed);
 
         return fold(
             swap(blk[0]) ^ (swap(blk[2]) +% seed),
@@ -668,7 +661,7 @@ pub const XxHash3 = struct {
         var acc_end = mix16(seed, input[input.len - 16 ..], secret[136 - 17 ..]);
         for (8..(input.len / 16)) |i| {
             acc_end +%= mix16(seed, input[i * 16 ..], secret[((i - 8) * 16) + 3 ..]);
-            disableAutoVectorization(i);
+            std.hint.doNotOptimizeAway(i);
         }
 
         acc = avalanche(.h3, acc) +% acc_end;

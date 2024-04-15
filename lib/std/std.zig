@@ -87,6 +87,7 @@ pub const meta = @import("meta.zig");
 pub const net = @import("net.zig");
 pub const os = @import("os.zig");
 pub const once = @import("once.zig").once;
+pub const hint = @import("hint.zig");
 pub const packed_int_array = @import("packed_int_array.zig");
 pub const pdb = @import("pdb.zig");
 pub const posix = @import("posix.zig");
