@@ -202,7 +202,7 @@ pub fn lowerMir(lower: *Lower, index: Mir.Inst.Index, options: struct {
                         try lower.emit(.vmvvx, &.{
                             .{ .reg = rr.rd },
                             .{ .reg = rr.rs },
-                            .{ .reg = .x0 },
+                            .{ .reg = .zero },
                         });
                     },
                     .float => return lower.fail("TODO: lowerMir pseudo_mv int -> {s}", .{@tagName(dst_class)}),

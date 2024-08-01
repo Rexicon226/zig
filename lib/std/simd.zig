@@ -11,7 +11,7 @@ const builtin = @import("builtin");
 pub fn suggestVectorLengthForCpu(comptime T: type, comptime cpu: std.Target.Cpu) ?comptime_int {
     // This is guesswork, if you have better suggestions can add it or edit the current here
     const element_bit_size = @max(8, std.math.ceilPowerOfTwo(u16, @bitSizeOf(T)) catch unreachable);
-    const vector_bit_size: u16 = blk: {
+    const vector_bit_size: u32 = blk: {
         if (cpu.arch.isX86()) {
             if (T == bool and std.Target.x86.featureSetHas(cpu.features, .prefer_mask_registers)) return 64;
             if (builtin.zig_backend != .stage2_x86_64 and std.Target.x86.featureSetHas(cpu.features, .avx512f) and !std.Target.x86.featureSetHasAny(cpu.features, .{ .prefer_256_bit, .prefer_128_bit })) break :blk 512;
@@ -37,33 +37,28 @@ pub fn suggestVectorLengthForCpu(comptime T: type, comptime cpu: std.Target.Cpu)
             if (std.Target.mips.featureSetHas(cpu.features, std.Target.mips.Feature.mips3d)) break :blk 64;
         } else if (cpu.arch.isRISCV()) {
             // In RISC-V Vector Registers are length agnostic so there's no good way to determine the best size.
-            // The usual vector length in most RISC-V cpus is 256 bits, however it can get to multiple kB.
             if (std.Target.riscv.featureSetHas(cpu.features, .v)) {
+                // a good default is 256, but RISC-V CPUs should define this flag
                 var vec_bit_length: u32 = 256;
-                if (std.Target.riscv.featureSetHas(cpu.features, .zvl32b)) {
-                    vec_bit_length = 32;
-                } else if (std.Target.riscv.featureSetHas(cpu.features, .zvl64b)) {
-                    vec_bit_length = 64;
-                } else if (std.Target.riscv.featureSetHas(cpu.features, .zvl128b)) {
-                    vec_bit_length = 128;
-                } else if (std.Target.riscv.featureSetHas(cpu.features, .zvl256b)) {
-                    vec_bit_length = 256;
-                } else if (std.Target.riscv.featureSetHas(cpu.features, .zvl512b)) {
-                    vec_bit_length = 512;
-                } else if (std.Target.riscv.featureSetHas(cpu.features, .zvl1024b)) {
-                    vec_bit_length = 1024;
-                } else if (std.Target.riscv.featureSetHas(cpu.features, .zvl2048b)) {
-                    vec_bit_length = 2048;
-                } else if (std.Target.riscv.featureSetHas(cpu.features, .zvl4096b)) {
-                    vec_bit_length = 4096;
-                } else if (std.Target.riscv.featureSetHas(cpu.features, .zvl8192b)) {
-                    vec_bit_length = 8192;
-                } else if (std.Target.riscv.featureSetHas(cpu.features, .zvl16384b)) {
-                    vec_bit_length = 16384;
-                } else if (std.Target.riscv.featureSetHas(cpu.features, .zvl32768b)) {
-                    vec_bit_length = 32768;
-                } else if (std.Target.riscv.featureSetHas(cpu.features, .zvl65536b)) {
-                    vec_bit_length = 65536;
+                for (.{
+                    .zvl32b,
+                    .zvl64b,
+                    .zvl128b,
+                    .zvl256b,
+                    .zvl512b,
+                    .zvl1024b,
+                    .zvl2048b,
+                    .zvl4096b,
+                    .zvl8192b,
+                    .zvl16384b,
+                    .zvl32768b,
+                    .zvl65536b,
+                }) |feat| {
+                    if (std.Target.riscv.featureSetHas(cpu.features, feat)) {
+                        // the formatting for the vector length feature name is consistent
+                        const name = @tagName(feat);
+                        vec_bit_length = std.fmt.parseInt(u32, name[3 .. name.len - 1], 10) catch unreachable;
+                    }
                 }
                 break :blk vec_bit_length;
             }
