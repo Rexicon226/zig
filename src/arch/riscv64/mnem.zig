@@ -151,6 +151,7 @@ pub const Mnemonic = enum(u16) {
     vsetvli,
     vsetivli,
     vaddvv,
+    vadcvv,
     vfaddvv,
     vsubvv,
     vfsubvv,
@@ -168,8 +169,10 @@ pub const Mnemonic = enum(u16) {
     vse32v,
     vse64v,
 
-    vadcvv,
     vmvvx,
+    vmvxs,
+
+    vredsumvs,
 
     // Zbb Extension Instructions
     clz,
