@@ -2134,7 +2134,7 @@ fn allocRegOrMem(func: *Func, elem_ty: Type, inst: ?Air.Inst.Index, reg_ok: bool
     const bit_size = elem_ty.bitSize(zcu);
     const min_size: u64 = switch (elem_ty.zigTypeTag(zcu)) {
         .float => if (func.hasFeature(.d)) 64 else 32,
-        .vector => 256, // TODO: calculate it from avl * vsew
+        .vector => func.vectorBits(),
         else => 64,
     };
 
@@ -2142,8 +2142,6 @@ fn allocRegOrMem(func: *Func, elem_ty: Type, inst: ?Air.Inst.Index, reg_ok: bool
         if (func.register_manager.tryAllocReg(inst, func.regGeneralClassForType(elem_ty))) |reg| {
             return .{ .register = reg };
         }
-    } else if (reg_ok and elem_ty.zigTypeTag(zcu) == .vector) {
-        return func.fail("did you forget to extend vector registers before allocating", .{});
     }
 
     const frame_index = try func.allocFrameIndex(FrameAlloc.initSpill(elem_ty, zcu));
@@ -2168,6 +2166,34 @@ fn allocReg(func: *Func, reg_class: abi.RegisterClass) !struct { Register, Regis
     const reg = try func.register_manager.allocReg(null, class);
     const lock = func.register_manager.lockRegAssumeUnused(reg);
     return .{ reg, lock };
+}
+
+/// Used when register allocating a type which requires a length multiplier of
+/// of more than `m1`.
+///
+/// This function will allocate enough vector registers to store `ty`, but will return
+/// only the first one, as that's the one that should be addressed in instructions.
+///
+/// Assumes that `vtype` was setup before calling this function. Changing `vlmul` before
+/// unlocking these registers will lead to unexpected results.
+fn allocVecReg(func: *Func, ty: Type) !struct { Register, []const RegisterLock } {
+    assert(func.typeRegClass(ty) == .vector);
+    const zcu = func.pt.zcu;
+
+    const vb = func.vectorBits();
+    const ty_bits = ty.bitSize(zcu);
+    const num_regs = math.divCeil(u32, @intCast(ty_bits), vb) catch unreachable;
+
+    var locks = std.ArrayList(RegisterLock).init(func.gpa);
+    const base_reg = try func.register_manager.allocReg(null, abi.Registers.Vector.general_purpose);
+    for (0..num_regs - 1) |i| {
+        const next_reg: Register = @enumFromInt(@intFromEnum(base_reg) + i);
+        try func.register_manager.getReg(next_reg, null);
+        const lock = func.register_manager.lockRegAssumeUnused(next_reg);
+        try locks.append(lock);
+    }
+
+    return .{ base_reg, try locks.toOwnedSlice() };
 }
 
 /// Similar to `allocReg` but will copy the MCValue into the Register unless `operand` is already
@@ -2684,14 +2710,10 @@ fn genBinOp(
                         else => return func.fail("TODO: genBinOp {s} Vector", .{@tagName(tag)}),
                     };
 
+                    const vsew = bits.VSew.fromBits(elem_size) orelse
+                        return func.fail("TODO: genBinOp > 64 bit elements, found {d}", .{elem_size});
                     try func.setVl(.zero, num_elem, .{
-                        .vsew = switch (elem_size) {
-                            8 => .@"8",
-                            16 => .@"16",
-                            32 => .@"32",
-                            64 => .@"64",
-                            else => return func.fail("TODO: genBinOp > 64 bit elements, found {d}", .{elem_size}),
-                        },
+                        .vsew = vsew,
                         .vlmul = .m1,
                         .vma = true,
                         .vta = true,
@@ -3898,9 +3920,11 @@ fn airArrayElemVal(func: *Func, inst: Air.Inst.Index) !void {
         if (array_ty.isVector(zcu)) {
             // we need to load the vector, vslidedown to get the element we want
             // and store that element in a load frame.
-
-            const src_reg, const src_lock = try func.allocReg(.vector);
-            defer func.register_manager.unlockReg(src_lock);
+            const src_reg, const src_locks = try func.allocVecReg(array_ty);
+            defer {
+                for (src_locks) |lock| func.register_manager.unlockReg(lock);
+                func.gpa.free(src_locks);
+            }
 
             // load the vector into a temporary register
             try func.genCopy(array_ty, .{ .register = src_reg }, .{ .indirect = .{ .reg = addr_reg } });
@@ -3912,7 +3936,6 @@ fn airArrayElemVal(func: *Func, inst: Air.Inst.Index) !void {
             // and can just copy to the frame index.
             if (!(index_mcv == .immediate and index_mcv.immediate == 0)) {
                 const index_reg = try func.copyToTmpRegister(Type.u64, index_mcv);
-
                 _ = try func.addInst(.{
                     .tag = .vslidedownvx,
                     .data = .{ .r_type = .{
@@ -5106,14 +5129,9 @@ fn airRet(func: *Func, inst: Air.Inst.Index, safety: bool) !void {
                 const bit_size = ret_ty.totalVectorBits(zcu);
 
                 // set the vtype to hold the entire vector's contents in a single element
+                const vsew = bits.VSew.fromBits(bit_size) orelse unreachable;
                 try func.setVl(.zero, 0, .{
-                    .vsew = switch (bit_size) {
-                        8 => .@"8",
-                        16 => .@"16",
-                        32 => .@"32",
-                        64 => .@"64",
-                        else => unreachable,
-                    },
+                    .vsew = vsew,
                     .vlmul = .m1,
                     .vma = true,
                     .vta = true,
@@ -6946,18 +6964,14 @@ fn genSetReg(func: *Func, ty: Type, reg: Register, src_mcv: MCValue) InnerError!
             // into an integer register, however we can cheat a bit by setting the element
             // size to the total size of the vector, and vmv.x.s will work then
             if (src_reg.class() == .vector) {
+                const vec_bits = ty.totalVectorBits(zcu);
                 try func.setVl(.zero, 0, .{
-                    .vsew = switch (ty.totalVectorBits(zcu)) {
-                        8 => .@"8",
-                        16 => .@"16",
-                        32 => .@"32",
-                        64 => .@"64",
-                        else => |vec_bits| return func.fail("TODO: genSetReg vec -> {s} bits {d}", .{
-                            @tagName(reg.class()),
-                            vec_bits,
-                        }),
-                    },
-                    .vlmul = .m1,
+                    .vsew = bits.VSew.fromBits(vec_bits) orelse
+                        return func.fail("TODO: genSetReg vec -> {s} bits {d}", .{
+                        @tagName(reg.class()),
+                        vec_bits,
+                    }),
+                    .vlmul = try func.suggestedVlMul(ty),
                     .vta = true,
                     .vma = true,
                 });
@@ -7066,17 +7080,11 @@ fn genSetReg(func: *Func, ty: Type, reg: Register, src_mcv: MCValue) InnerError!
                     // and load from it.
                     const len = ty.vectorLen(zcu);
                     const elem_ty = ty.childType(zcu);
-                    const elem_size = elem_ty.abiSize(zcu);
+                    const elem_size = elem_ty.bitSize(zcu);
 
                     try func.setVl(.zero, len, .{
-                        .vsew = switch (elem_size) {
-                            1 => .@"8",
-                            2 => .@"16",
-                            4 => .@"32",
-                            8 => .@"64",
-                            else => unreachable,
-                        },
-                        .vlmul = .m1,
+                        .vsew = bits.VSew.fromBits(elem_size) orelse unreachable,
+                        .vlmul = try func.suggestedVlMul(ty),
                         .vma = true,
                         .vta = true,
                     });
@@ -7214,15 +7222,10 @@ fn genSetMem(
 
                 const num_elem = ty.vectorLen(zcu);
                 const elem_size = ty.childType(zcu).bitSize(zcu);
+                const vsew = bits.VSew.fromBits(elem_size) orelse unreachable;
 
                 try func.setVl(.zero, num_elem, .{
-                    .vsew = switch (elem_size) {
-                        8 => .@"8",
-                        16 => .@"16",
-                        32 => .@"32",
-                        64 => .@"64",
-                        else => unreachable,
-                    },
+                    .vsew = vsew,
                     .vlmul = .m1,
                     .vma = true,
                     .vta = true,
@@ -8046,8 +8049,50 @@ fn airErrorName(func: *Func, inst: Air.Inst.Index) !void {
 }
 
 fn airSplat(func: *Func, inst: Air.Inst.Index) !void {
+    const pt = func.pt;
+    const zcu = pt.zcu;
     const ty_op = func.air.instructions.items(.data)[@intFromEnum(inst)].ty_op;
-    const result: MCValue = if (func.liveness.isUnused(inst)) .unreach else return func.fail("TODO implement airSplat for riscv64", .{});
+    const result: MCValue = if (func.liveness.isUnused(inst)) .unreach else result: {
+        const vector_ty = func.typeOfIndex(inst);
+        const vector_len = vector_ty.vectorLen(zcu);
+        const scalar_ty = func.typeOf(ty_op.operand);
+        const src_mcv = try func.resolveInst(ty_op.operand);
+
+        const dst_reg, const dst_lock = try func.allocReg(.vector);
+        const src_reg, const src_lock = try func.promoteReg(scalar_ty, src_mcv);
+        defer if (src_lock) |lock| func.register_manager.unlockReg(lock);
+        defer func.register_manager.unlockReg(dst_lock);
+
+        switch (scalar_ty.zigTypeTag(zcu)) {
+            .int => {
+                switch (scalar_ty.intInfo(zcu).bits) {
+                    8, 16, 32, 64 => |b| {
+                        const vsew = bits.VSew.fromBits(b) orelse unreachable;
+
+                        try func.setVl(.zero, vector_len, .{
+                            .vlmul = .m1,
+                            .vsew = vsew,
+                            .vma = true,
+                            .vta = true,
+                        });
+
+                        _ = try func.addInst(.{
+                            .tag = .vmvvx,
+                            .data = .{ .r_type = .{
+                                .rd = dst_reg,
+                                .rs1 = src_reg,
+                                .rs2 = .zero,
+                            } },
+                        });
+                    },
+                    else => |b| return func.fail("TODO: implement airSplat for Int {d}", .{b}),
+                }
+            },
+            else => return func.fail("TODO implement airSplat for {}", .{vector_ty.fmt(pt)}),
+        }
+
+        break :result .{ .register = dst_reg };
+    };
     return func.finishAir(inst, result, .{ ty_op.operand, .none, .none });
 }
 
@@ -8473,6 +8518,46 @@ fn typeOfIndex(func: *Func, inst: Air.Inst.Index) Type {
 
 fn hasFeature(func: *Func, feature: Target.riscv.Feature) bool {
     return Target.riscv.featureSetHas(func.target.cpu.features, feature);
+}
+
+fn vectorBits(func: *Func) u32 {
+    var vec_bit_length: u32 = 256;
+    inline for (.{
+        .zvl32b,
+        .zvl64b,
+        .zvl128b,
+        .zvl256b,
+        .zvl512b,
+        .zvl1024b,
+        .zvl2048b,
+        .zvl4096b,
+        .zvl8192b,
+        .zvl16384b,
+        .zvl32768b,
+        .zvl65536b,
+    }) |feat| {
+        if (std.Target.riscv.featureSetHas(func.target.cpu.features, feat)) {
+            const name = @tagName(feat);
+            vec_bit_length = std.fmt.parseInt(u32, name[3 .. name.len - 1], 10) catch unreachable;
+        }
+    }
+    return vec_bit_length;
+}
+
+fn suggestedVlMul(func: *Func, ty: Type) !bits.VlMul {
+    const zcu = func.pt.zcu;
+    const vb = func.vectorBits();
+    const ty_bits = ty.bitSize(zcu);
+
+    const regs = math.divCeil(u32, @intCast(ty_bits), vb) catch unreachable;
+    const mul = try math.ceilPowerOfTwo(u32, regs);
+
+    return switch (mul) {
+        1 => .m1,
+        2 => .m2,
+        4 => .m4,
+        else => return func.fail("suggestedVlMul mul {d}", .{mul}),
+    };
 }
 
 pub fn errUnionPayloadOffset(payload_ty: Type, zcu: *Zcu) u64 {

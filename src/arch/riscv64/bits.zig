@@ -291,14 +291,24 @@ pub const VType = packed struct(u8) {
     vma: bool,
 };
 
-const VSew = enum(u3) {
+pub const VSew = enum(u3) {
     @"8" = 0b000,
     @"16" = 0b001,
     @"32" = 0b010,
     @"64" = 0b011,
+
+    pub fn fromBits(bits: u64) ?VSew {
+        return switch (bits) {
+            8 => .@"8",
+            16 => .@"16",
+            32 => .@"32",
+            64 => .@"64",
+            else => null,
+        };
+    }
 };
 
-const VlMul = enum(u3) {
+pub const VlMul = enum(u3) {
     mf8 = 0b101,
     mf4 = 0b110,
     mf2 = 0b111,
