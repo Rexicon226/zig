@@ -6859,13 +6859,17 @@ fn genSetReg(func: *Func, ty: Type, reg: Register, src_mcv: MCValue) InnerError!
     const pt = func.pt;
     const zcu = pt.zcu;
     const abi_size: u32 = @intCast(ty.abiSize(zcu));
+    const bit_size = ty.bitSize(zcu);
 
     const max_size: u32 = switch (reg.class()) {
         .int => 64,
         .float => if (func.hasFeature(.d)) 64 else 32,
-        .vector => 64, // TODO: calculate it from avl * vsew
+        .vector => func.vectorBits(),
     };
-    if (abi_size > max_size) return std.debug.panic("tried to set reg with size {}", .{abi_size});
+    if (bit_size > max_size) return std.debug.panic(
+        "tried to set {s} reg with size {}",
+        .{ @tagName(reg.class()), abi_size },
+    );
     const dst_reg_class = reg.class();
 
     switch (src_mcv) {
@@ -6960,17 +6964,15 @@ fn genSetReg(func: *Func, ty: Type, reg: Register, src_mcv: MCValue) InnerError!
             if (src_reg.id() == reg.id())
                 return;
 
-            // there is no instruction for loading the contents of a vector register
-            // into an integer register, however we can cheat a bit by setting the element
-            // size to the total size of the vector, and vmv.x.s will work then
-            if (src_reg.class() == .vector) {
-                const vec_bits = ty.totalVectorBits(zcu);
+            if (src_reg.class() == .vector and reg.class() == .int) {
+                assert(ty.isVector(zcu)); // pass in the child type
+                const elem_bits = ty.childType(zcu).bitSize(zcu);
                 try func.setVl(.zero, 0, .{
-                    .vsew = bits.VSew.fromBits(vec_bits) orelse
-                        return func.fail("TODO: genSetReg vec -> {s} bits {d}", .{
-                        @tagName(reg.class()),
-                        vec_bits,
-                    }),
+                    .vsew = bits.VSew.fromBits(elem_bits) orelse
+                        return func.fail(
+                        "TODO: genSetReg vec -> int bits {d}, make sure to pass in the vector type itself",
+                        .{elem_bits},
+                    ),
                     .vlmul = try func.suggestedVlMul(ty),
                     .vta = true,
                     .vma = true,
@@ -6996,7 +6998,7 @@ fn genSetReg(func: *Func, ty: Type, reg: Register, src_mcv: MCValue) InnerError!
                 const addr_reg, const addr_lock = try func.allocReg(.int);
                 defer func.register_manager.unlockReg(addr_lock);
 
-                try func.genCopy(ty, .{ .register = addr_reg }, src_mcv.address());
+                try func.genCopy(Type.u64, .{ .register = addr_reg }, src_mcv.address());
                 try func.genCopy(ty, .{ .register = reg }, .{ .indirect = .{ .reg = addr_reg } });
             } else {
                 _ = try func.addInst(.{
@@ -8110,8 +8112,55 @@ fn airShuffle(func: *Func, inst: Air.Inst.Index) !void {
 }
 
 fn airReduce(func: *Func, inst: Air.Inst.Index) !void {
+    const pt = func.pt;
+    const zcu = pt.zcu;
+
     const reduce = func.air.instructions.items(.data)[@intFromEnum(inst)].reduce;
-    const result: MCValue = if (func.liveness.isUnused(inst)) .unreach else return func.fail("TODO implement airReduce for riscv64", .{});
+    const result: MCValue = if (func.liveness.isUnused(inst)) .unreach else result: {
+        const operand_ty = func.typeOf(reduce.operand);
+        const operand = try func.resolveInst(reduce.operand);
+        const elem_ty = operand_ty.childType(zcu);
+
+        if (!elem_ty.isInt(zcu)) {
+            return func.fail("TODO: airReduce {}", .{operand_ty.fmt(pt)});
+        }
+
+        const dst_mcv = try func.allocRegOrMem(elem_ty, inst, true);
+
+        const mask_reg, const mask_lock = try func.allocReg(.vector);
+        defer func.register_manager.unlockReg(mask_lock);
+
+        const src_reg, const src_lock = try func.promoteReg(operand_ty, operand);
+        defer if (src_lock) |lock| func.register_manager.unlockReg(lock);
+
+        try func.setVl(.zero, operand_ty.vectorLen(zcu), .{
+            .vlmul = try func.suggestedVlMul(operand_ty),
+            .vsew = bits.VSew.fromBits(elem_ty.bitSize(zcu)) orelse
+                return func.fail("TODO: airReduce elem_ty size {}", .{elem_ty.bitSize(zcu)}),
+            .vma = true,
+            .vta = true,
+        });
+
+        // TODO: optimize this to use vmv.s.x instead of a full-lane move
+        try func.genSetReg(operand_ty, mask_reg, .{ .register = .zero });
+
+        const operation: std.builtin.ReduceOp = reduce.operation;
+        switch (operation) {
+            .Add => _ = try func.addInst(.{
+                .tag = .vredsumvs,
+                .data = .{ .r_type = .{
+                    .rd = mask_reg,
+                    .rs1 = mask_reg,
+                    .rs2 = src_reg,
+                } },
+            }),
+            else => return func.fail("TODO: airReduce {s}", .{@tagName(operation)}),
+        }
+
+        try func.genCopy(elem_ty, dst_mcv, .{ .register = mask_reg });
+
+        break :result dst_mcv;
+    };
     return func.finishAir(inst, result, .{ reduce.operand, .none, .none });
 }
 
@@ -8546,6 +8595,8 @@ fn vectorBits(func: *Func) u32 {
 
 fn suggestedVlMul(func: *Func, ty: Type) !bits.VlMul {
     const zcu = func.pt.zcu;
+    assert(ty.isVector(zcu)); // pass in the vector type
+
     const vb = func.vectorBits();
     const ty_bits = ty.bitSize(zcu);
 

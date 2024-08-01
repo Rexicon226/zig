@@ -416,10 +416,14 @@ pub const Lir = struct {
             .vfmulvv        => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b100100, .funct3 = .OPFVV } } },
             
             .vadcvv         => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b010000, .funct3 = .OPMVV } } },
+
             .vmvvx          => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b010111, .funct3 = .OPIVX } } },
+            .vmvxs          => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b010000, .funct3 = .OPMVV } } },
 
             .vslidedownvx   => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b001111, .funct3 = .OPIVX } } },
-            
+            .vredsumvs      => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b000000, .funct3 = .OPMVV } } },
+
+            // pseudo
 
             .pseudo_prologue,
             .pseudo_epilogue,

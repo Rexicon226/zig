@@ -210,7 +210,7 @@ pub fn lowerMir(lower: *Lower, index: Mir.Inst.Index, options: struct {
                 },
                 .vector => switch (dst_class) {
                     .int => {
-                        try lower.emit(.vadcvv, &.{
+                        try lower.emit(.vmvxs, &.{
                             .{ .reg = rr.rd },
                             .{ .reg = .zero },
                             .{ .reg = rr.rs },
