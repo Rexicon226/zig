@@ -2185,7 +2185,7 @@ fn allocVecReg(func: *Func, ty: Type) !struct { Register, []const RegisterLock }
 
     var locks = std.ArrayList(RegisterLock).init(func.gpa);
     const base_reg = try func.register_manager.allocReg(null, abi.Registers.Vector.general_purpose);
-    for (0..num_regs - 1) |i| {
+    for (0..num_regs) |i| {
         const next_reg: Register = @enumFromInt(@intFromEnum(base_reg) + i);
         try func.register_manager.getReg(next_reg, null);
         const lock = func.register_manager.lockRegAssumeUnused(next_reg);
@@ -6670,7 +6670,7 @@ fn genSetReg(func: *Func, ty: Type, reg: Register, src_mcv: MCValue) InnerError!
     const max_size: u32 = switch (reg.class()) {
         .int => 64,
         .float => if (func.hasFeature(.d)) 64 else 32,
-        .vector => func.vectorBits(),
+        .vector => @intCast(bit_size), // it can be larger than a register because of the multiplier
     };
     if (bit_size > max_size) return std.debug.panic("tried to set {s} reg with size {}", .{ @tagName(reg.class()), abi_size });
     const dst_reg_class = reg.class();
@@ -6938,7 +6938,7 @@ fn genSetReg(func: *Func, ty: Type, reg: Register, src_mcv: MCValue) InnerError!
             const addr_reg, const addr_lock = try func.allocReg(.int);
             defer func.register_manager.unlockReg(addr_lock);
 
-            try func.genSetReg(ty, addr_reg, src_mcv.address());
+            try func.genSetReg(Type.u64, addr_reg, src_mcv.address());
             try func.genSetReg(ty, reg, .{ .indirect = .{ .reg = addr_reg } });
         },
         .lea_tlv => |sym| {
@@ -7929,11 +7929,15 @@ fn airReduce(func: *Func, inst: Air.Inst.Index) !void {
 
         const dst_mcv = try func.allocRegOrMem(elem_ty, inst, true);
 
+        const src_reg, const src_locks = try func.allocVecReg(operand_ty);
+        defer {
+            for (src_locks) |lock| func.register_manager.unlockReg(lock);
+            func.gpa.free(src_locks);
+        }
+        try func.genCopy(operand_ty, .{ .register = src_reg }, operand);
+
         const mask_reg, const mask_lock = try func.allocReg(.vector);
         defer func.register_manager.unlockReg(mask_lock);
-
-        const src_reg, const src_lock = try func.promoteReg(operand_ty, operand);
-        defer if (src_lock) |lock| func.register_manager.unlockReg(lock);
 
         try func.setVl(.zero, operand_ty.vectorLen(zcu), .{
             .vlmul = try func.suggestedVlMul(operand_ty),
@@ -8437,6 +8441,7 @@ fn suggestedVlMul(func: *Func, ty: Type) !bits.VlMul {
         1 => .m1,
         2 => .m2,
         4 => .m4,
+        8 => .m8,
         else => return func.fail("suggestedVlMul mul {d}", .{mul}),
     };
 }
