@@ -421,7 +421,15 @@ pub const Lir = struct {
             .vmvxs          => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b010000, .funct3 = .OPMVV } } },
 
             .vslidedownvx   => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b001111, .funct3 = .OPIVX } } },
+
             .vredsumvs      => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b000000, .funct3 = .OPMVV } } },
+            .vredandvs      => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b000001, .funct3 = .OPMVV } } },
+            .vredorvs       => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b000010, .funct3 = .OPMVV } } },
+            .vredxorvs      => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b000011, .funct3 = .OPMVV } } },
+            .vredminuvs     => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b000100, .funct3 = .OPMVV } } },
+            .vredminvs      => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b000101, .funct3 = .OPMVV } } },
+            .vredmaxuvs     => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b000110, .funct3 = .OPMVV } } },
+            .vredmaxvs      => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b000111, .funct3 = .OPMVV } } },
 
             // pseudo
 
