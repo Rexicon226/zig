@@ -7947,17 +7947,27 @@ fn airReduce(func: *Func, inst: Air.Inst.Index) !void {
         try func.genSetReg(operand_ty, mask_reg, .{ .register = .zero });
 
         const operation: std.builtin.ReduceOp = reduce.operation;
-        switch (operation) {
-            .Add => _ = try func.addInst(.{
-                .tag = .vredsumvs,
-                .data = .{ .r_type = .{
-                    .rd = mask_reg,
-                    .rs1 = mask_reg,
-                    .rs2 = src_reg,
-                } },
-            }),
-            else => return func.fail("TODO: airReduce {s}", .{@tagName(operation)}),
-        }
+        _ = try func.addInst(.{
+            .tag = switch (operation) {
+                // zig fmt: off
+                .Add => .vredsumvs,
+                .And => .vredandvs,
+                .Max => if (elem_ty.isUnsignedInt(zcu)) .vredmaxuvs else .vredmaxvs,
+                .Min => if (elem_ty.isUnsignedInt(zcu)) .vredminuvs else .vredminvs,
+                .Or  => .vredorvs,
+                .Xor => .vredxorvs,
+                .Mul => return func.fail("TODO: airReduce Mul", .{}),
+                // zig fmt: on
+            },
+            .data = .{ .r_type = .{
+                .rd = mask_reg,
+                .rs1 = switch (operation) {
+                    .Add => mask_reg,
+                    else => src_reg,
+                },
+                .rs2 = src_reg,
+            } },
+        });
 
         try func.genCopy(elem_ty, dst_mcv, .{ .register = mask_reg });
 

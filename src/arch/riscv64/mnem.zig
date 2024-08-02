@@ -173,6 +173,13 @@ pub const Mnemonic = enum(u16) {
     vmvxs,
 
     vredsumvs,
+    vredandvs,
+    vredorvs,
+    vredxorvs,
+    vredminuvs,
+    vredminvs,
+    vredmaxuvs,
+    vredmaxvs,
 
     // Zbb Extension Instructions
     clz,
