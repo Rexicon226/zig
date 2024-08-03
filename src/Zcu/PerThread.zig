@@ -729,6 +729,8 @@ pub fn ensureFuncBodyAnalyzed(pt: Zcu.PerThread, maybe_coerced_func_index: Inter
     };
     errdefer air.deinit(gpa);
 
+    Oir.fromAir(air, pt);
+
     const invalidate_ies_deps = i: {
         if (!was_outdated) break :i false;
         if (!func.analysisUnordered(ip).inferred_error_set) break :i true;
@@ -3265,6 +3267,7 @@ pub fn getBuiltinType(pt: Zcu.PerThread, name: []const u8) Allocator.Error!Type 
 }
 
 const Air = @import("../Air.zig");
+const Oir = @import("../Oir.zig");
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
 const Ast = std.zig.Ast;
