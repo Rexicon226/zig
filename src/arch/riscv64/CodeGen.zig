@@ -2928,8 +2928,16 @@ fn genBinOp(
             => {
                 assert(lhs_reg.class() == rhs_reg.class());
                 if (lhs_reg.class() == .int) {
-                    try func.truncateRegister(lhs_ty, lhs_reg);
-                    try func.truncateRegister(rhs_ty, rhs_reg);
+                    if (lhs_ty.isAbiInt(zcu)) {
+                        const lhs_bits = lhs_ty.intInfo(zcu).bits;
+                        if (!math.isPowerOfTwo(lhs_bits)) {
+                            try func.truncateRegister(lhs_ty, lhs_reg);
+                            try func.truncateRegister(rhs_ty, rhs_reg);
+                        }
+                    } else {
+                        try func.truncateRegister(lhs_ty, lhs_reg);
+                        try func.truncateRegister(rhs_ty, rhs_reg);
+                    }
                 }
 
                 _ = try func.addInst(.{
@@ -3107,68 +3115,7 @@ fn airAddWithOverflow(func: *Func, inst: Air.Inst.Index) !void {
 
                     break :result result_mcv;
                 } else {
-                    const rhs_mcv = try func.resolveInst(extra.rhs);
-                    const lhs_mcv = try func.resolveInst(extra.lhs);
-
-                    const rhs_reg, const rhs_lock = try func.promoteReg(rhs_ty, rhs_mcv);
-                    const lhs_reg, const lhs_lock = try func.promoteReg(lhs_ty, lhs_mcv);
-                    defer {
-                        if (rhs_lock) |lock| func.register_manager.unlockReg(lock);
-                        if (lhs_lock) |lock| func.register_manager.unlockReg(lock);
-                    }
-
-                    try func.truncateRegister(rhs_ty, rhs_reg);
-                    try func.truncateRegister(lhs_ty, lhs_reg);
-
-                    const dest_reg, const dest_lock = try func.allocReg(.int);
-                    defer func.register_manager.unlockReg(dest_lock);
-
-                    _ = try func.addInst(.{
-                        .tag = .add,
-                        .data = .{ .r_type = .{
-                            .rs1 = rhs_reg,
-                            .rs2 = lhs_reg,
-                            .rd = dest_reg,
-                        } },
-                    });
-
-                    try func.truncateRegister(func.typeOfIndex(inst), dest_reg);
-                    const add_result: MCValue = .{ .register = dest_reg };
-
-                    try func.genSetMem(
-                        .{ .frame = offset.index },
-                        offset.off + @as(i32, @intCast(tuple_ty.structFieldOffset(0, pt))),
-                        lhs_ty,
-                        add_result,
-                    );
-
-                    const trunc_reg = try func.copyToTmpRegister(lhs_ty, add_result);
-                    const trunc_reg_lock = func.register_manager.lockRegAssumeUnused(trunc_reg);
-                    defer func.register_manager.unlockReg(trunc_reg_lock);
-
-                    const overflow_reg, const overflow_lock = try func.allocReg(.int);
-                    defer func.register_manager.unlockReg(overflow_lock);
-
-                    // if the result isn't equal after truncating it to the given type,
-                    // an overflow must have happened.
-                    try func.truncateRegister(lhs_ty, trunc_reg);
-                    try func.genBinOp(
-                        .cmp_neq,
-                        add_result,
-                        lhs_ty,
-                        .{ .register = trunc_reg },
-                        rhs_ty,
-                        .{ .register = overflow_reg },
-                    );
-
-                    try func.genSetMem(
-                        .{ .frame = offset.index },
-                        offset.off + @as(i32, @intCast(tuple_ty.structFieldOffset(1, pt))),
-                        Type.u1,
-                        .{ .register = overflow_reg },
-                    );
-
-                    break :result result_mcv;
+                    return func.fail("TODO: airAddWithOverflow {d}", .{int_info.bits});
                 }
             },
             else => unreachable,
