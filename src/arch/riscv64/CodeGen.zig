@@ -339,6 +339,34 @@ const MCValue = union(enum) {
             else => &.{},
         };
     }
+
+    fn fmt(mcv: MCValue) std.fmt.Formatter(format2) {
+        return .{ .data = mcv };
+    }
+
+    fn format2(
+        mcv: MCValue,
+        comptime _: []const u8,
+        _: std.fmt.FormatOptions,
+        writer: anytype,
+    ) !void {
+        switch (mcv) {
+            inline .lea_frame,
+            .load_frame,
+            => |frame| try writer.print(
+                "{s}(idx: %{d}, off: {d})",
+                .{ @tagName(mcv), @intFromEnum(frame.index), frame.off },
+            ),
+            inline .lea_symbol,
+            .load_symbol,
+            => |sym| try writer.print(
+                "{s}(sym: {d}, off: {d})",
+                .{ @tagName(mcv), sym.sym, sym.off },
+            ),
+            .register => |reg| try writer.print("reg({s})", .{@tagName(reg)}),
+            else => try writer.print("{}", .{mcv}),
+        }
+    }
 };
 
 const Branch = struct {
@@ -4486,7 +4514,10 @@ fn load(func: *Func, dst_mcv: MCValue, ptr_mcv: MCValue, ptr_ty: Type) InnerErro
     const zcu = pt.zcu;
     const dst_ty = ptr_ty.childType(zcu);
 
-    log.debug("loading {}:{} into {}", .{ ptr_mcv, ptr_ty.fmt(pt), dst_mcv });
+    log.debug(
+        "loading {}:{} into {}",
+        .{ ptr_mcv.fmt(), ptr_ty.fmt(pt), dst_mcv.fmt() },
+    );
 
     switch (ptr_mcv) {
         .none,
@@ -4541,7 +4572,10 @@ fn airStore(func: *Func, inst: Air.Inst.Index, safety: bool) !void {
 fn store(func: *Func, ptr_mcv: MCValue, src_mcv: MCValue, ptr_ty: Type) !void {
     const zcu = func.pt.zcu;
     const src_ty = ptr_ty.childType(zcu);
-    log.debug("storing {}:{} in {}:{}", .{ src_mcv, src_ty.fmt(func.pt), ptr_mcv, ptr_ty.fmt(func.pt) });
+    log.debug(
+        "storing {}:{} in {}:{}",
+        .{ src_mcv.fmt(), src_ty.fmt(func.pt), ptr_mcv.fmt(), ptr_ty.fmt(func.pt) },
+    );
 
     switch (ptr_mcv) {
         .none => unreachable,
@@ -6562,7 +6596,7 @@ fn genCopy(func: *Func, ty: Type, dst_mcv: MCValue, src_mcv: MCValue) !void {
             const addr_reg, const addr_lock = try func.allocReg(.int);
             defer func.register_manager.unlockReg(addr_lock);
 
-            try func.genSetReg(ty, addr_reg, dst_mcv.address());
+            try func.genSetReg(Type.u64, addr_reg, dst_mcv.address());
             try func.genCopy(ty, .{ .indirect = .{ .reg = addr_reg } }, src_mcv);
         },
         .memory => return func.fail("TODO: genCopy memory", .{}),
@@ -8288,12 +8322,16 @@ fn genTypedValue(func: *Func, val: Value) InnerError!MCValue {
         .mcv => |mcv| switch (mcv) {
             .none => .none,
             .undef => unreachable,
-            .lea_symbol => |sym_index| .{ .lea_symbol = .{ .sym = sym_index } },
             .load_symbol => |sym_index| .{ .load_symbol = .{ .sym = sym_index } },
+            .lea_symbol => |sym_index| .{ .lea_symbol = .{ .sym = sym_index } },
             .load_tlv => |sym_index| .{ .lea_tlv = sym_index },
             .immediate => |imm| .{ .immediate = imm },
             .memory => |addr| .{ .memory = addr },
-            .load_got, .load_direct, .lea_direct => {
+
+            .load_got,
+            .load_direct,
+            .lea_direct,
+            => {
                 return func.fail("TODO: genTypedValue {s}", .{@tagName(mcv)});
             },
         },
