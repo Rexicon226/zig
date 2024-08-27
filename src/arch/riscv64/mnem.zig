@@ -83,65 +83,109 @@ pub const Mnemonic = enum(u16) {
     remuw,
 
     // F extension (32-bit float)
+    /// Floating-Point Add Single
     fadds,
+    /// Floating-Point Subtract Single
     fsubs,
+    /// Floating-Point Multiply Single
     fmuls,
+    /// Floating-Point Divide Single
     fdivs,
 
+    /// Floating-Point Minimum Single
     fmins,
+    /// Floating-Point Maximum Single
     fmaxs,
 
+    /// Floating-Point Square Root Double
     fsqrts,
 
+    /// Floating-Point Load Word (Single)
     flw,
+    /// Floating-Point Load Word (Single)
     fsw,
 
+    /// Floating-Point Equal Single
     feqs,
+    /// Floating-Point Less than Single
     flts,
+    /// Floating-Point Less than OR Equal Single
     fles,
 
     // D extension (64-bit float)
+    /// Floating-Point Add Double
     faddd,
+    /// Floating-Point Subtract Double
     fsubd,
+    /// Floating-Point Multiply Double
     fmuld,
+    /// Floating-Point Divide Double
     fdivd,
 
+    /// Floating-Point Minimum Double
     fmind,
+    /// Floating-Point Maximum Double
     fmaxd,
 
+    /// Floating-Point Square Root Double
     fsqrtd,
 
+    /// Floating-Point Load Double
     fld,
+    /// Floating-Point Store Double
     fsd,
 
+    /// Floating-Point Equal Double
     feqd,
+    /// Floating-Point Less than Double
     fltd,
+    /// Floating-Point Less than OR Equal Double
     fled,
 
+    /// Floating-Point Convert Wide to Single
     fcvtws,
+    /// Floating-Point Convert Unsigned Wide to Single
     fcvtwus,
+    /// Floating-Point Convert Long to Single
     fcvtls,
+    /// Floating-Point Convert Unsigned Long to Single
     fcvtlus,
 
+    /// Floating-Point Convert Wide to Double
     fcvtwd,
+    /// Floating-Point Convert Unsigned Wide to Double
     fcvtwud,
+    /// Floating-Point Convert Long to Double
     fcvtld,
+    /// Floating-Point Convert Unsigned Long to Double
     fcvtlud,
 
+    /// Floating-Point Convert Single to Wide
     fcvtsw,
+    /// Floating-Point Convert Single to Unsigned Wide
     fcvtswu,
+    /// Floating-Point Convert Single to Long
     fcvtsl,
+    /// Floating-Point Convert Single to Unsigned Long
     fcvtslu,
 
+    /// Floating-Point Convert Double to Wide
     fcvtdw,
+    /// Floating-Point Convert Double to Unsigned Wide
     fcvtdwu,
+    /// Floating-Point Convert Double to Long
     fcvtdl,
+    /// Floating-Point Convert Double to Unsigned Long
     fcvtdlu,
 
+    /// Floating-Point Sign Inject Negate Single
     fsgnjns,
+    /// Floating-Point Sign Inject Negate Double
     fsgnjnd,
 
+    /// Floating-Point Sign Inject Absolute Single
     fsgnjxs,
+    /// Floating-Point Sign Inject Absolute Double
     fsgnjxd,
 
     // Zicsr Extension Instructions
