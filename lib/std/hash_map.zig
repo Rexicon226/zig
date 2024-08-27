@@ -1185,10 +1185,11 @@ pub fn HashMapUnmanaged(
         /// fuse the basic blocks after the branch to the basic blocks
         /// from this function.  To encourage that, this function is
         /// marked as inline.
-        inline fn getIndex(self: Self, key: anytype, ctx: anytype) ?usize {
+        fn getIndex(self: Self, key: anytype, ctx: anytype) ?usize {
             comptime verifyContext(@TypeOf(ctx), @TypeOf(key), K, Hash, false);
 
             if (self.size == 0) {
+                @branchHint(.unlikely);
                 return null;
             }
 

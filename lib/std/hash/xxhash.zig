@@ -465,19 +465,12 @@ pub const XxHash3 = struct {
     }
 
     inline fn swap(x: anytype) @TypeOf(x) {
-        return if (native_endian == .big) @byteSwap(x) else x;
-    }
-
-    inline fn disableAutoVectorization(x: anytype) void {
-        if (!@inComptime()) asm volatile (""
-            :
-            : [x] "r" (x),
-        );
+        return std.mem.nativeToLittle(@TypeOf(x), x);
     }
 
     inline fn mix16(seed: u64, input: []const u8, secret: []const u8) u64 {
         const blk: [4]u64 = @bitCast([_][16]u8{ input[0..16].*, secret[0..16].* });
-        disableAutoVectorization(seed);
+        std.mem.doNotOptimizeAway(seed);
 
         return fold(
             swap(blk[0]) ^ (swap(blk[2]) +% seed),
@@ -593,11 +586,11 @@ pub const XxHash3 = struct {
     }
 
     fn hash3(seed: u64, input: anytype, noalias secret: *const [192]u8) u64 {
-        @branchHint(.cold);
+        @branchHint(.unlikely);
         std.debug.assert(input.len > 0 and input.len < 4);
 
         const flip: [2]u32 = @bitCast(secret[0..8].*);
-        const blk: u32 = @bitCast([_]u8{
+        const blk: u32 = @bitCast([4]u8{
             input[input.len - 1],
             @truncate(input.len),
             input[0],
@@ -609,11 +602,11 @@ pub const XxHash3 = struct {
     }
 
     fn hash8(seed: u64, input: anytype, noalias secret: *const [192]u8) u64 {
-        @branchHint(.cold);
+        @branchHint(.unlikely);
         std.debug.assert(input.len >= 4 and input.len <= 8);
 
         const flip: [2]u64 = @bitCast(secret[8..24].*);
-        const blk: [2]u32 = @bitCast([_][4]u8{
+        const blk: [2]u32 = @bitCast([2][4]u8{
             input[0..4].*,
             input[input.len - 4 ..][0..4].*,
         });
@@ -625,11 +618,11 @@ pub const XxHash3 = struct {
     }
 
     fn hash16(seed: u64, input: anytype, noalias secret: *const [192]u8) u64 {
-        @branchHint(.cold);
+        @branchHint(.unlikely);
         std.debug.assert(input.len > 8 and input.len <= 16);
 
         const flip: [4]u64 = @bitCast(secret[24..56].*);
-        const blk: [2]u64 = @bitCast([_][8]u8{
+        const blk: [2]u64 = @bitCast([2][8]u8{
             input[0..8].*,
             input[input.len - 8 ..][0..8].*,
         });
@@ -641,7 +634,7 @@ pub const XxHash3 = struct {
     }
 
     fn hash128(seed: u64, input: anytype, noalias secret: *const [192]u8) u64 {
-        @branchHint(.cold);
+        @branchHint(.unlikely);
         std.debug.assert(input.len > 16 and input.len <= 128);
 
         var acc = XxHash64.prime_1 *% @as(u64, input.len);
@@ -657,7 +650,7 @@ pub const XxHash3 = struct {
     }
 
     fn hash240(seed: u64, input: anytype, noalias secret: *const [192]u8) u64 {
-        @branchHint(.cold);
+        @branchHint(.unlikely);
         std.debug.assert(input.len > 128 and input.len <= 240);
 
         var acc = XxHash64.prime_1 *% @as(u64, input.len);
@@ -668,7 +661,7 @@ pub const XxHash3 = struct {
         var acc_end = mix16(seed, input[input.len - 16 ..], secret[136 - 17 ..]);
         for (8..(input.len / 16)) |i| {
             acc_end +%= mix16(seed, input[i * 16 ..], secret[((i - 8) * 16) + 3 ..]);
-            disableAutoVectorization(i);
+            std.mem.doNotOptimizeAway(i);
         }
 
         acc = avalanche(.h3, acc) +% acc_end;
