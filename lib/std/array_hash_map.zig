@@ -538,6 +538,12 @@ pub fn ArrayHashMapUnmanaged(
         /// Used to detect memory safety violations.
         pointer_stability: std.debug.SafetyLock = .{},
 
+        /// A map containing no keys or values.
+        pub const empty: Self = .{
+            .entries = .{},
+            .index_header = null,
+        };
+
         /// Modifying the key is allowed only if it does not change the hash.
         /// Modifying the value is allowed.
         /// Entry pointers become invalid whenever this ArrayHashMap is modified,
