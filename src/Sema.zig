@@ -23539,25 +23539,47 @@ fn zirErrorCast(sema: *Sema, block: *Block, extended: Zir.Inst.Extended.InstData
     // operand must be defined since it can be an invalid error value
     const maybe_operand_val = try sema.resolveDefinedValue(block, operand_src, operand);
 
+    // is the destination type the IES of the current function we're in
+    var is_dest_ret_ies: bool = false;
+
     const disjoint = disjoint: {
         // Try avoiding resolving inferred error sets if we can
         if (!dest_ty.isAnyError(zcu) and dest_ty.errorSetIsEmpty(zcu)) break :disjoint true;
         if (!operand_ty.isAnyError(zcu) and operand_ty.errorSetIsEmpty(zcu)) break :disjoint true;
         if (dest_ty.isAnyError(zcu)) break :disjoint false;
         if (operand_ty.isAnyError(zcu)) break :disjoint false;
-        const dest_err_names = dest_ty.errorSetNames(zcu);
+
+        const resolved_dest_ty = if (ip.isInferredErrorSetType(dest_ty.toIntern())) blk: {
+            const dst_ies_func_index = ip.iesFuncIndex(dest_ty.toIntern());
+
+            // dest_ty is the IES of the function we're currently in
+            if (sema.fn_ret_ty_ies) |dst_ies| {
+                if (dst_ies.func == dst_ies_func_index) {
+                    // we just append the operand's error set to our IES
+                    try dst_ies.addErrorSet(operand_ty, ip, sema.arena);
+                    is_dest_ret_ies = true;
+                    break :disjoint false;
+                }
+            }
+
+            // otherwise, we're going to resolve the IES in order to get the names of the error set
+            const resolved_ies = try sema.resolveInferredErrorSet(block, src, dest_ty.toIntern());
+            break :blk Type.fromInterned(resolved_ies);
+        } else dest_ty;
+
+        const dest_err_names = resolved_dest_ty.errorSetNames(zcu);
         for (0..dest_err_names.len) |dest_err_index| {
             if (Type.errorSetHasFieldIp(ip, operand_ty.toIntern(), dest_err_names.get(ip)[dest_err_index]))
                 break :disjoint false;
         }
 
-        if (!ip.isInferredErrorSetType(dest_ty.toIntern()) and
+        if (!ip.isInferredErrorSetType(resolved_dest_ty.toIntern()) and
             !ip.isInferredErrorSetType(operand_ty.toIntern()))
         {
             break :disjoint true;
         }
 
-        _ = try sema.resolveInferredErrorSetTy(block, src, dest_ty.toIntern());
+        _ = try sema.resolveInferredErrorSetTy(block, src, resolved_dest_ty.toIntern());
         _ = try sema.resolveInferredErrorSetTy(block, operand_src, operand_ty.toIntern());
         for (0..dest_err_names.len) |dest_err_index| {
             if (Type.errorSetHasFieldIp(ip, operand_ty.toIntern(), dest_err_names.get(ip)[dest_err_index]))
@@ -23573,7 +23595,7 @@ fn zirErrorCast(sema: *Sema, block: *Block, extended: Zir.Inst.Extended.InstData
     }
 
     if (maybe_operand_val) |val| {
-        if (!dest_ty.isAnyError(zcu)) check: {
+        if (!dest_ty.isAnyError(zcu) and !is_dest_ret_ies) check: {
             const operand_val = zcu.intern_pool.indexToKey(val.toIntern());
             var error_name: InternPool.NullTerminatedString = undefined;
             if (operand_tag == .error_union) {
