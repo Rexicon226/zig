@@ -23549,43 +23549,40 @@ fn zirErrorCast(sema: *Sema, block: *Block, extended: Zir.Inst.Extended.InstData
         if (dest_ty.isAnyError(zcu)) break :disjoint false;
         if (operand_ty.isAnyError(zcu)) break :disjoint false;
 
+        // This will now be a resolved error set.
         const resolved_dest_ty = if (ip.isInferredErrorSetType(dest_ty.toIntern())) blk: {
             const dst_ies_func_index = ip.iesFuncIndex(dest_ty.toIntern());
 
-            // dest_ty is the IES of the function we're currently in
             if (sema.fn_ret_ty_ies) |dst_ies| {
                 if (dst_ies.func == dst_ies_func_index) {
-                    // we just append the operand's error set to our IES
+                    // dest_ty is the IES of the function we're currently in
+                    // we just append the operand's error set to our IES, thus making
+                    // them not disjoint.
                     try dst_ies.addErrorSet(operand_ty, ip, sema.arena);
                     is_dest_ret_ies = true;
                     break :disjoint false;
                 }
             }
 
-            // otherwise, we're going to resolve the IES in order to get the names of the error set
+            // In order to figure out whether they are disjoint below, we need to resolve
+            // all of the errors that will be inside of the set, in order to not miss any
+            // potential matches.
             const resolved_ies = try sema.resolveInferredErrorSet(block, src, dest_ty.toIntern());
             break :blk Type.fromInterned(resolved_ies);
         } else dest_ty;
 
+        // Iterates through the names of the destination error set, and checks whether
+        // the operand error set contains an error of that name. We just need one match
+        // for it to not be disjoint.
+        // If the operand is an IES, resolve that as well.
+        _ = try sema.resolveInferredErrorSetTy(block, operand_src, operand_ty.toIntern());
         const dest_err_names = resolved_dest_ty.errorSetNames(zcu);
         for (0..dest_err_names.len) |dest_err_index| {
             if (Type.errorSetHasFieldIp(ip, operand_ty.toIntern(), dest_err_names.get(ip)[dest_err_index]))
                 break :disjoint false;
         }
 
-        if (!ip.isInferredErrorSetType(resolved_dest_ty.toIntern()) and
-            !ip.isInferredErrorSetType(operand_ty.toIntern()))
-        {
-            break :disjoint true;
-        }
-
-        _ = try sema.resolveInferredErrorSetTy(block, src, resolved_dest_ty.toIntern());
-        _ = try sema.resolveInferredErrorSetTy(block, operand_src, operand_ty.toIntern());
-        for (0..dest_err_names.len) |dest_err_index| {
-            if (Type.errorSetHasFieldIp(ip, operand_ty.toIntern(), dest_err_names.get(ip)[dest_err_index]))
-                break :disjoint false;
-        }
-
+        // No matches were found, they must be disjoint.
         break :disjoint true;
     };
     if (disjoint and dest_tag != .error_union) {
