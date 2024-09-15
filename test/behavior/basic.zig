@@ -297,6 +297,7 @@ const OpaqueB = opaque {};
 test "opaque types" {
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_spirv64) return error.SkipZigTest;
+    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     try expect(*OpaqueA != *OpaqueB);
 

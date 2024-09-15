@@ -357,8 +357,6 @@ test "@ptrCast slice to pointer" {
 }
 
 test "slice multi-pointer without end" {
-    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
-
     const S = struct {
         fn doTheTest() !void {
             try testPointer();

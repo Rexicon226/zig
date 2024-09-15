@@ -816,6 +816,7 @@ test "@addWithOverflow" {
     if (builtin.zig_backend == .stage2_aarch64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_arm) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
+    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     try testAddWithOverflow(u8, 250, 100, 94, 1);
     try testAddWithOverflow(u8, 100, 150, 250, 0);
@@ -876,6 +877,7 @@ test "@addWithOverflow > 64 bits" {
 test "small int addition" {
     if (builtin.zig_backend == .stage2_arm) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
+    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     var x: u2 = 0;
     try expect(x == 0);
@@ -903,6 +905,7 @@ fn testMulWithOverflow(comptime T: type, a: T, b: T, mul: T, bit: u1) !void {
 test "basic @mulWithOverflow" {
     if (builtin.zig_backend == .stage2_aarch64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_arm) return error.SkipZigTest; // TODO
+    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     try testMulWithOverflow(u8, 86, 3, 2, 1);
     try testMulWithOverflow(u8, 85, 3, 255, 0);

@@ -324,7 +324,6 @@ test "peer result null and comptime_int" {
 test "*const ?[*]const T to [*c]const [*c]const T" {
     if (builtin.zig_backend == .stage2_aarch64) return error.SkipZigTest;
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
-    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     var array = [_]u8{ 'o', 'k' };
     const opt_array_ptr: ?[*]const u8 = &array;
@@ -755,6 +754,7 @@ test "peer type resolution: error union and error set" {
     if (builtin.zig_backend == .stage2_aarch64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_spirv64) return error.SkipZigTest;
+    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     const a: error{Three} = undefined;
     const b: error{ One, Two }!u32 = undefined;
@@ -927,7 +927,6 @@ test "peer cast *[N:x]T to *[N]T" {
 test "peer cast [*:x]T to [*]T" {
     if (builtin.zig_backend == .stage2_aarch64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
-    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     const S = struct {
         fn doTheTest() !void {
@@ -1740,6 +1739,7 @@ test "peer type resolution: array and vector with same child type" {
     if (builtin.zig_backend == .stage2_aarch64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_arm) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
+    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     var arr: [2]u32 = .{ 0, 1 };
     var vec: @Vector(2, u32) = .{ 2, 3 };

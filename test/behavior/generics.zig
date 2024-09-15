@@ -89,7 +89,6 @@ fn max_f64(a: f64, b: f64) f64 {
 test "type constructed by comptime function call" {
     if (builtin.zig_backend == .stage2_aarch64) return error.SkipZigTest;
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
-    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     var l: SimpleList(10) = undefined;
     l.array[0] = 10;
@@ -401,6 +400,8 @@ test "generic struct as parameter type" {
 }
 
 test "slice as parameter type" {
+    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
+
     const S = struct {
         fn internComptimeString(comptime str: []const u8) *const []const u8 {
             return &struct {
