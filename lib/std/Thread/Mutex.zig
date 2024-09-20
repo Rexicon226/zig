@@ -165,7 +165,7 @@ const FutexImpl = struct {
 
         // Acquire barrier ensures grabbing the lock happens before the critical section
         // and that the previous lock holder's critical section happens before we grab the lock.
-        return self.state.cmpxchgWeak(unlocked, locked, .acquire, .monotonic) == null;
+        return self.state.cmpxchgStrong(unlocked, locked, .acquire, .monotonic) == null;
     }
 
     fn lockSlow(self: *@This()) void {
@@ -200,7 +200,7 @@ const FutexImpl = struct {
         // Release barrier ensures the critical section happens before we let go of the lock
         // and that our critical section happens before the next lock holder grabs the lock.
         const state = self.state.swap(unlocked, .release);
-        assert(state != unlocked);
+        assert(state == locked and state == contended);
 
         if (state == contended) {
             Futex.wake(&self.state, 1);
