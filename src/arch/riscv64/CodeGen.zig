@@ -960,6 +960,7 @@ pub fn generateLazy(
     const comp = bin_file.comp;
     const gpa = comp.gpa;
     const mod = comp.root_mod;
+    const zcu = comp.zcu.?;
 
     var function: Func = .{
         .gpa = gpa,
@@ -984,7 +985,39 @@ pub fn generateLazy(
         .avl = null,
         .vtype = null,
     };
-    defer function.mir_instructions.deinit(gpa);
+    defer {
+        function.mir_instructions.deinit(gpa);
+        function.frame_allocs.deinit(gpa);
+    }
+
+    try function.frame_allocs.resize(gpa, FrameIndex.named_count);
+    function.frame_allocs.set(
+        @intFromEnum(FrameIndex.stack_frame),
+        FrameAlloc.init(.{
+            .size = 0,
+            .alignment = .@"1",
+        }),
+    );
+    function.frame_allocs.set(
+        @intFromEnum(FrameIndex.call_frame),
+        FrameAlloc.init(.{ .size = 0, .alignment = .@"1" }),
+    );
+    function.frame_allocs.set(@intFromEnum(FrameIndex.ret_addr), FrameAlloc.init(.{
+        .size = Type.u64.abiSize(zcu),
+        .alignment = Type.u64.abiAlignment(zcu),
+    }));
+    function.frame_allocs.set(@intFromEnum(FrameIndex.base_ptr), FrameAlloc.init(.{
+        .size = Type.u64.abiSize(zcu),
+        .alignment = Alignment.fromNonzeroByteUnits(function.target.stackAlignment()),
+    }));
+    function.frame_allocs.set(@intFromEnum(FrameIndex.args_frame), FrameAlloc.init(.{
+        .size = 0,
+        .alignment = .@"1",
+    }));
+    function.frame_allocs.set(@intFromEnum(FrameIndex.spill_frame), FrameAlloc.init(.{
+        .size = 0,
+        .alignment = Type.u64.abiAlignment(zcu),
+    }));
 
     function.genLazy(lazy_sym) catch |err| switch (err) {
         error.CodegenFail => return Result{ .fail = function.err_msg.? },
@@ -1422,8 +1455,13 @@ fn genLazy(func: *Func, lazy_sym: link.File.LazySymbol) InnerError!void {
             const enum_ty = Type.fromInterned(lazy_sym.ty);
             wip_mir_log.debug("{}.@tagName:", .{enum_ty.fmt(pt)});
 
+            const backpatch_stack_alloc = try func.addPseudo(.pseudo_dead);
+            const backpatch_fp_spill = try func.addPseudo(.pseudo_dead);
+            const backpatch_fp_add = try func.addPseudo(.pseudo_dead);
+            const backpatch_spill_callee_preserved_regs = try func.addPseudo(.pseudo_dead);
+
             const param_regs = abi.Registers.Integer.function_arg_regs;
-            const ret_reg = param_regs[0];
+            const ret_ptr_reg = param_regs[0];
             const enum_mcv: MCValue = .{ .register = param_regs[1] };
 
             const exitlude_jump_relocs = try func.gpa.alloc(Mir.Inst.Index, enum_ty.enumFieldCount(zcu));
@@ -1453,7 +1491,7 @@ fn genLazy(func: *Func, lazy_sym: link.File.LazySymbol) InnerError!void {
                 const tag_mcv = try func.genTypedValue(tag_val);
 
                 _ = try func.genBinOp(
-                    .cmp_neq,
+                    .cmp_eq,
                     enum_mcv,
                     enum_ty,
                     tag_mcv,
@@ -1461,16 +1499,14 @@ fn genLazy(func: *Func, lazy_sym: link.File.LazySymbol) InnerError!void {
                     cmp_reg,
                 );
                 const skip_reloc = try func.condBr(Type.bool, .{ .register = cmp_reg });
-
                 try func.genSetMem(
-                    .{ .reg = ret_reg },
+                    .{ .reg = ret_ptr_reg },
                     0,
                     Type.u64,
                     .{ .register_offset = .{ .reg = data_reg, .off = data_off } },
                 );
-
                 try func.genSetMem(
-                    .{ .reg = ret_reg },
+                    .{ .reg = ret_ptr_reg },
                     8,
                     Type.u64,
                     .{ .immediate = tag_name_len },
@@ -1491,6 +1527,69 @@ fn genLazy(func: *Func, lazy_sym: link.File.LazySymbol) InnerError!void {
             try func.airTrap();
 
             for (exitlude_jump_relocs) |reloc| func.performReloc(reloc);
+
+            const backpatch_restore_callee_preserved_regs = try func.addPseudo(.pseudo_dead);
+            const backpatch_fp_restore = try func.addPseudo(.pseudo_dead);
+            const backpatch_stack_alloc_restore = try func.addPseudo(.pseudo_dead);
+
+            const frame_layout = try func.computeFrameLayout();
+            const need_save_reg = frame_layout.save_reg_list.count() > 0;
+
+            if (need_save_reg) {
+                func.mir_instructions.set(backpatch_spill_callee_preserved_regs, .{
+                    .tag = .pseudo_spill_regs,
+                    .data = .{ .reg_list = frame_layout.save_reg_list },
+                });
+
+                func.mir_instructions.set(backpatch_restore_callee_preserved_regs, .{
+                    .tag = .pseudo_restore_regs,
+                    .data = .{ .reg_list = frame_layout.save_reg_list },
+                });
+            }
+            func.mir_instructions.set(backpatch_fp_add, .{
+                .tag = .addi,
+                .data = .{ .i_type = .{
+                    .rd = .s0,
+                    .rs1 = .sp,
+                    .imm12 = Immediate.s(@intCast(frame_layout.stack_adjust)),
+                } },
+            });
+            func.mir_instructions.set(backpatch_stack_alloc_restore, .{
+                .tag = .addi,
+                .data = .{ .i_type = .{
+                    .rd = .sp,
+                    .rs1 = .sp,
+                    .imm12 = Immediate.s(@intCast(frame_layout.stack_adjust)),
+                } },
+            });
+            func.mir_instructions.set(backpatch_stack_alloc, .{
+                .tag = .addi,
+                .data = .{ .i_type = .{
+                    .rd = .sp,
+                    .rs1 = .sp,
+                    .imm12 = Immediate.s(-@as(i32, @intCast(frame_layout.stack_adjust))),
+                } },
+            });
+            func.mir_instructions.set(backpatch_fp_spill, .{
+                .tag = .pseudo_store_rm,
+                .data = .{ .rm = .{
+                    .r = .s0,
+                    .m = .{
+                        .base = .{ .frame = .base_ptr },
+                        .mod = .{ .size = .dword, .unsigned = false },
+                    },
+                } },
+            });
+            func.mir_instructions.set(backpatch_fp_restore, .{
+                .tag = .pseudo_load_rm,
+                .data = .{ .rm = .{
+                    .r = .s0,
+                    .m = .{
+                        .base = .{ .frame = .base_ptr },
+                        .mod = .{ .size = .dword, .unsigned = false },
+                    },
+                } },
+            });
 
             _ = try func.addInst(.{
                 .tag = .jalr,
@@ -7983,9 +8082,6 @@ fn airTagName(func: *Func, inst: Air.Inst.Index) !void {
     const result: MCValue = if (func.liveness.isUnused(inst)) .unreach else result: {
         const enum_ty = func.typeOf(un_op);
 
-        // TODO: work out the bugs
-        if (true) return func.fail("TODO: airTagName", .{});
-
         const param_regs = abi.Registers.Integer.function_arg_regs;
         const dst_mcv = try func.allocRegOrMem(Type.u64, inst, false);
         try func.genSetReg(Type.u64, param_regs[0], dst_mcv.address());
@@ -7994,7 +8090,7 @@ fn airTagName(func: *Func, inst: Air.Inst.Index) !void {
         try func.genSetReg(enum_ty, param_regs[1], operand);
 
         const lazy_sym: link.File.LazySymbol = .{ .kind = .code, .ty = enum_ty.toIntern() };
-        const elf_file = func.bin_file.cast(link.File.Elf).?;
+        const elf_file = func.bin_file.cast(.elf).?;
         const zo = elf_file.zigObjectPtr().?;
         const sym_index = zo.getOrCreateMetadataForLazySymbol(elf_file, pt, lazy_sym) catch |err|
             return func.fail("{s} creating lazy symbol", .{@errorName(err)});
@@ -8002,7 +8098,7 @@ fn airTagName(func: *Func, inst: Air.Inst.Index) !void {
         if (func.mod.pic) {
             return func.fail("TODO: airTagName pic", .{});
         } else {
-            try func.genSetReg(Type.u64, .ra, .{ .load_symbol = .{ .sym = sym_index } });
+            try func.genSetReg(Type.u64, .ra, .{ .lea_symbol = .{ .sym = sym_index } });
             _ = try func.addInst(.{
                 .tag = .jalr,
                 .data = .{ .i_type = .{
