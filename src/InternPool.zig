@@ -1385,7 +1385,7 @@ const Shard = struct {
                     @atomicStore(Value, &entry.value, value, .release);
                 }
                 fn resetUnordered(entry: *Entry) void {
-                    @atomicStore(Value, &entry.value, .none, .unordered);
+                    @atomicStore(Value, &entry.value, .none, .monotonic);
                 }
             };
         };
@@ -2107,7 +2107,7 @@ pub const Key = union(enum) {
         }
 
         pub fn analysisUnordered(func: Func, ip: *const InternPool) FuncAnalysis {
-            return @atomicLoad(FuncAnalysis, func.analysisPtr(@constCast(ip)), .unordered);
+            return @atomicLoad(FuncAnalysis, func.analysisPtr(@constCast(ip)), .monotonic);
         }
 
         pub fn setAnalysisState(func: Func, ip: *InternPool, state: FuncAnalysis.State) void {
@@ -2150,7 +2150,7 @@ pub const Key = union(enum) {
         }
 
         pub fn zirBodyInstUnordered(func: Func, ip: *const InternPool) TrackedInst.Index {
-            return @atomicLoad(TrackedInst.Index, func.zirBodyInstPtr(@constCast(ip)), .unordered);
+            return @atomicLoad(TrackedInst.Index, func.zirBodyInstPtr(@constCast(ip)), .monotonic);
         }
 
         /// Returns a pointer that becomes invalid after any additions to the `InternPool`.
@@ -2160,7 +2160,7 @@ pub const Key = union(enum) {
         }
 
         pub fn branchQuotaUnordered(func: Func, ip: *const InternPool) u32 {
-            return @atomicLoad(u32, func.branchQuotaPtr(@constCast(ip)), .unordered);
+            return @atomicLoad(u32, func.branchQuotaPtr(@constCast(ip)), .monotonic);
         }
 
         pub fn maxBranchQuota(func: Func, ip: *InternPool, new_branch_quota: u32) void {
@@ -2180,7 +2180,7 @@ pub const Key = union(enum) {
         }
 
         pub fn resolvedErrorSetUnordered(func: Func, ip: *const InternPool) Index {
-            return @atomicLoad(Index, func.resolvedErrorSetPtr(@constCast(ip)), .unordered);
+            return @atomicLoad(Index, func.resolvedErrorSetPtr(@constCast(ip)), .monotonic);
         }
 
         pub fn setResolvedErrorSet(func: Func, ip: *InternPool, ies: Index) void {
@@ -3142,7 +3142,7 @@ pub const LoadedUnionType = struct {
     }
 
     pub fn tagTypeUnordered(u: LoadedUnionType, ip: *const InternPool) Index {
-        return @atomicLoad(Index, u.tagTypePtr(@constCast(ip)), .unordered);
+        return @atomicLoad(Index, u.tagTypePtr(@constCast(ip)), .monotonic);
     }
 
     pub fn setTagType(u: LoadedUnionType, ip: *InternPool, tag_type: Index) void {
@@ -3161,7 +3161,7 @@ pub const LoadedUnionType = struct {
     }
 
     pub fn flagsUnordered(u: LoadedUnionType, ip: *const InternPool) Tag.TypeUnion.Flags {
-        return @atomicLoad(Tag.TypeUnion.Flags, u.flagsPtr(@constCast(ip)), .unordered);
+        return @atomicLoad(Tag.TypeUnion.Flags, u.flagsPtr(@constCast(ip)), .monotonic);
     }
 
     pub fn setStatus(u: LoadedUnionType, ip: *InternPool, status: Status) void {
@@ -3261,7 +3261,7 @@ pub const LoadedUnionType = struct {
     }
 
     pub fn sizeUnordered(u: LoadedUnionType, ip: *const InternPool) u32 {
-        return @atomicLoad(u32, u.sizePtr(@constCast(ip)), .unordered);
+        return @atomicLoad(u32, u.sizePtr(@constCast(ip)), .monotonic);
     }
 
     /// The returned pointer expires with any addition to the `InternPool`.
@@ -3272,7 +3272,7 @@ pub const LoadedUnionType = struct {
     }
 
     pub fn paddingUnordered(u: LoadedUnionType, ip: *const InternPool) u32 {
-        return @atomicLoad(u32, u.paddingPtr(@constCast(ip)), .unordered);
+        return @atomicLoad(u32, u.paddingPtr(@constCast(ip)), .monotonic);
     }
 
     pub fn hasTag(self: LoadedUnionType, ip: *const InternPool) bool {
@@ -3292,8 +3292,8 @@ pub const LoadedUnionType = struct {
         extra_mutex.lock();
         defer extra_mutex.unlock();
 
-        @atomicStore(u32, u.sizePtr(ip), size, .unordered);
-        @atomicStore(u32, u.paddingPtr(ip), padding, .unordered);
+        @atomicStore(u32, u.sizePtr(ip), size, .monotonic);
+        @atomicStore(u32, u.paddingPtr(ip), padding, .monotonic);
         const flags_ptr = u.flagsPtr(ip);
         var flags = flags_ptr.*;
         flags.alignment = alignment;
@@ -3531,7 +3531,7 @@ pub const LoadedStructType = struct {
     }
 
     pub fn flagsUnordered(s: LoadedStructType, ip: *const InternPool) Tag.TypeStruct.Flags {
-        return @atomicLoad(Tag.TypeStruct.Flags, s.flagsPtr(@constCast(ip)), .unordered);
+        return @atomicLoad(Tag.TypeStruct.Flags, s.flagsPtr(@constCast(ip)), .monotonic);
     }
 
     /// The returned pointer expires with any addition to the `InternPool`.
@@ -3544,7 +3544,7 @@ pub const LoadedStructType = struct {
     }
 
     pub fn packedFlagsUnordered(s: LoadedStructType, ip: *const InternPool) Tag.TypeStructPacked.Flags {
-        return @atomicLoad(Tag.TypeStructPacked.Flags, s.packedFlagsPtr(@constCast(ip)), .unordered);
+        return @atomicLoad(Tag.TypeStructPacked.Flags, s.packedFlagsPtr(@constCast(ip)), .monotonic);
     }
 
     /// Reads the non-opv flag calculated during AstGen. Used to short-circuit more
@@ -3802,7 +3802,7 @@ pub const LoadedStructType = struct {
     }
 
     pub fn sizeUnordered(s: LoadedStructType, ip: *const InternPool) u32 {
-        return @atomicLoad(u32, s.sizePtr(@constCast(ip)), .unordered);
+        return @atomicLoad(u32, s.sizePtr(@constCast(ip)), .monotonic);
     }
 
     /// The backing integer type of the packed struct. Whether zig chooses
@@ -3817,7 +3817,7 @@ pub const LoadedStructType = struct {
     }
 
     pub fn backingIntTypeUnordered(s: LoadedStructType, ip: *const InternPool) Index {
-        return @atomicLoad(Index, s.backingIntTypePtr(@constCast(ip)), .unordered);
+        return @atomicLoad(Index, s.backingIntTypePtr(@constCast(ip)), .monotonic);
     }
 
     pub fn setBackingIntType(s: LoadedStructType, ip: *InternPool, backing_int_ty: Index) void {
@@ -3880,7 +3880,7 @@ pub const LoadedStructType = struct {
         extra_mutex.lock();
         defer extra_mutex.unlock();
 
-        @atomicStore(u32, s.sizePtr(ip), size, .unordered);
+        @atomicStore(u32, s.sizePtr(ip), size, .monotonic);
         const flags_ptr = s.flagsPtr(ip);
         var flags = flags_ptr.*;
         flags.alignment = alignment;
@@ -3984,7 +3984,7 @@ pub fn loadStructType(ip: *const InternPool, index: Index) LoadedStructType {
             const namespace: NamespaceIndex = @enumFromInt(extra_items[item.data + std.meta.fieldIndex(Tag.TypeStruct, "namespace").?]);
             const zir_index: TrackedInst.Index = @enumFromInt(extra_items[item.data + std.meta.fieldIndex(Tag.TypeStruct, "zir_index").?]);
             const fields_len = extra_items[item.data + std.meta.fieldIndex(Tag.TypeStruct, "fields_len").?];
-            const flags: Tag.TypeStruct.Flags = @bitCast(@atomicLoad(u32, &extra_items[item.data + std.meta.fieldIndex(Tag.TypeStruct, "flags").?], .unordered));
+            const flags: Tag.TypeStruct.Flags = @bitCast(@atomicLoad(u32, &extra_items[item.data + std.meta.fieldIndex(Tag.TypeStruct, "flags").?], .monotonic));
             var extra_index = item.data + @as(u32, @typeInfo(Tag.TypeStruct).@"struct".fields.len);
             const captures_len = if (flags.any_captures) c: {
                 const len = extra_list.view().items(.@"0")[extra_index];
@@ -4089,7 +4089,7 @@ pub fn loadStructType(ip: *const InternPool, index: Index) LoadedStructType {
             const fields_len = extra_items[item.data + std.meta.fieldIndex(Tag.TypeStructPacked, "fields_len").?];
             const namespace: NamespaceIndex = @enumFromInt(extra_items[item.data + std.meta.fieldIndex(Tag.TypeStructPacked, "namespace").?]);
             const names_map: MapIndex = @enumFromInt(extra_items[item.data + std.meta.fieldIndex(Tag.TypeStructPacked, "names_map").?]);
-            const flags: Tag.TypeStructPacked.Flags = @bitCast(@atomicLoad(u32, &extra_items[item.data + std.meta.fieldIndex(Tag.TypeStructPacked, "flags").?], .unordered));
+            const flags: Tag.TypeStructPacked.Flags = @bitCast(@atomicLoad(u32, &extra_items[item.data + std.meta.fieldIndex(Tag.TypeStructPacked, "flags").?], .monotonic));
             var extra_index = item.data + @as(u32, @typeInfo(Tag.TypeStructPacked).@"struct".fields.len);
             const has_inits = item.tag == .type_struct_packed_inits;
             const captures_len = if (flags.any_captures) c: {
@@ -6353,7 +6353,7 @@ pub fn indexToKey(ip: *const InternPool, index: Index) Key {
             const extra_list = unwrapped_index.getExtra(ip);
             const extra_items = extra_list.view().items(.@"0");
             const zir_index: TrackedInst.Index = @enumFromInt(extra_items[data + std.meta.fieldIndex(Tag.TypeStruct, "zir_index").?]);
-            const flags: Tag.TypeStruct.Flags = @bitCast(@atomicLoad(u32, &extra_items[data + std.meta.fieldIndex(Tag.TypeStruct, "flags").?], .unordered));
+            const flags: Tag.TypeStruct.Flags = @bitCast(@atomicLoad(u32, &extra_items[data + std.meta.fieldIndex(Tag.TypeStruct, "flags").?], .monotonic));
             const end_extra_index = data + @as(u32, @typeInfo(Tag.TypeStruct).@"struct".fields.len);
             if (flags.is_reified) {
                 assert(!flags.any_captures);
@@ -6376,7 +6376,7 @@ pub fn indexToKey(ip: *const InternPool, index: Index) Key {
             const extra_list = unwrapped_index.getExtra(ip);
             const extra_items = extra_list.view().items(.@"0");
             const zir_index: TrackedInst.Index = @enumFromInt(extra_items[item.data + std.meta.fieldIndex(Tag.TypeStructPacked, "zir_index").?]);
-            const flags: Tag.TypeStructPacked.Flags = @bitCast(@atomicLoad(u32, &extra_items[item.data + std.meta.fieldIndex(Tag.TypeStructPacked, "flags").?], .unordered));
+            const flags: Tag.TypeStructPacked.Flags = @bitCast(@atomicLoad(u32, &extra_items[item.data + std.meta.fieldIndex(Tag.TypeStructPacked, "flags").?], .monotonic));
             const end_extra_index = data + @as(u32, @typeInfo(Tag.TypeStructPacked).@"struct".fields.len);
             if (flags.is_reified) {
                 assert(!flags.any_captures);
@@ -6860,7 +6860,7 @@ fn extraFuncDecl(tid: Zcu.PerThread.Id, extra: Local.Extra, extra_index: u32) Ke
 fn extraFuncInstance(ip: *const InternPool, tid: Zcu.PerThread.Id, extra: Local.Extra, extra_index: u32) Key.Func {
     const extra_items = extra.view().items(.@"0");
     const analysis_extra_index = extra_index + std.meta.fieldIndex(Tag.FuncInstance, "analysis").?;
-    const analysis: FuncAnalysis = @bitCast(@atomicLoad(u32, &extra_items[analysis_extra_index], .unordered));
+    const analysis: FuncAnalysis = @bitCast(@atomicLoad(u32, &extra_items[analysis_extra_index], .monotonic));
     const owner_nav: Nav.Index = @enumFromInt(extra_items[extra_index + std.meta.fieldIndex(Tag.FuncInstance, "owner_nav").?]);
     const ty: Index = @enumFromInt(extra_items[extra_index + std.meta.fieldIndex(Tag.FuncInstance, "ty").?]);
     const generic_owner: Index = @enumFromInt(extra_items[extra_index + std.meta.fieldIndex(Tag.FuncInstance, "generic_owner").?]);
@@ -9657,7 +9657,7 @@ pub fn remove(ip: *InternPool, tid: Zcu.PerThread.Id, index: Index) void {
     // Thus, we will rewrite the tag to `removed`, leaking the item until
     // next GC but causing `KeyAdapter` to ignore it.
     const items = ip.getLocalShared(unwrapped_index.tid).items.acquire().view();
-    @atomicStore(Tag, &items.items(.tag)[unwrapped_index.index], .removed, .unordered);
+    @atomicStore(Tag, &items.items(.tag)[unwrapped_index.index], .removed, .monotonic);
 }
 
 fn addInt(
@@ -11757,7 +11757,7 @@ fn funcAnalysisPtr(ip: *InternPool, func: Index) *FuncAnalysis {
 }
 
 pub fn funcAnalysisUnordered(ip: *const InternPool, func: Index) FuncAnalysis {
-    return @atomicLoad(FuncAnalysis, @constCast(ip).funcAnalysisPtr(func), .unordered);
+    return @atomicLoad(FuncAnalysis, @constCast(ip).funcAnalysisPtr(func), .monotonic);
 }
 
 pub fn funcSetCallsOrAwaitsErrorableFn(ip: *InternPool, func: Index) void {
@@ -11861,7 +11861,7 @@ fn funcIesResolvedPtr(ip: *InternPool, func_index: Index) *Index {
 }
 
 pub fn funcIesResolvedUnordered(ip: *const InternPool, index: Index) Index {
-    return @atomicLoad(Index, @constCast(ip).funcIesResolvedPtr(index), .unordered);
+    return @atomicLoad(Index, @constCast(ip).funcIesResolvedPtr(index), .monotonic);
 }
 
 pub fn funcSetIesResolved(ip: *InternPool, index: Index, ies: Index) void {

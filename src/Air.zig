@@ -741,12 +741,10 @@ pub const Inst = struct {
         /// Atomically store through a pointer.
         /// Result type is always `void`.
         /// Uses the `bin_op` field. LHS is pointer, RHS is element.
-        atomic_store_unordered,
-        /// Same as `atomic_store_unordered` but with `AtomicOrder.monotonic`.
         atomic_store_monotonic,
-        /// Same as `atomic_store_unordered` but with `AtomicOrder.release`.
+        /// Same as `atomic_store_monotonic` but with `AtomicOrder.release`.
         atomic_store_release,
-        /// Same as `atomic_store_unordered` but with `AtomicOrder.seq_cst`.
+        /// Same as `atomic_store_monotonic` but with `AtomicOrder.seq_cst`.
         atomic_store_seq_cst,
         /// Atomically read-modify-write via a pointer.
         /// Result type is the element type of the pointer.
@@ -1064,7 +1062,7 @@ pub const Inst = struct {
         },
         atomic_load: struct {
             ptr: Ref,
-            order: std.builtin.AtomicOrder,
+            order: std.builtin.NewAtomicOrder,
         },
         prefetch: struct {
             ptr: Ref,
@@ -1247,12 +1245,12 @@ pub const Cmpxchg = struct {
     /// 0b00000000000000000000000000XXX000 - failure_order
     flags: u32,
 
-    pub fn successOrder(self: Cmpxchg) std.builtin.AtomicOrder {
-        return @as(std.builtin.AtomicOrder, @enumFromInt(@as(u3, @truncate(self.flags))));
+    pub fn successOrder(self: Cmpxchg) std.builtin.NewAtomicOrder {
+        return @enumFromInt(@as(u3, @truncate(self.flags)));
     }
 
-    pub fn failureOrder(self: Cmpxchg) std.builtin.AtomicOrder {
-        return @as(std.builtin.AtomicOrder, @enumFromInt(@as(u3, @truncate(self.flags >> 3))));
+    pub fn failureOrder(self: Cmpxchg) std.builtin.NewAtomicOrder {
+        return @enumFromInt(@as(u3, @truncate(self.flags >> 3)));
     }
 };
 
@@ -1262,12 +1260,12 @@ pub const AtomicRmw = struct {
     /// 0b0000000000000000000000000XXXX000 - op
     flags: u32,
 
-    pub fn ordering(self: AtomicRmw) std.builtin.AtomicOrder {
-        return @as(std.builtin.AtomicOrder, @enumFromInt(@as(u3, @truncate(self.flags))));
+    pub fn ordering(self: AtomicRmw) std.builtin.NewAtomicOrder {
+        return @enumFromInt(@as(u3, @truncate(self.flags)));
     }
 
     pub fn op(self: AtomicRmw) std.builtin.AtomicRmwOp {
-        return @as(std.builtin.AtomicRmwOp, @enumFromInt(@as(u4, @truncate(self.flags >> 3))));
+        return @enumFromInt(@as(u4, @truncate(self.flags >> 3)));
     }
 };
 
@@ -1473,7 +1471,6 @@ pub fn typeOfIndex(air: *const Air, inst: Air.Inst.Index, ip: *const InternPool)
         .dbg_arg_inline,
         .store,
         .store_safe,
-        .atomic_store_unordered,
         .atomic_store_monotonic,
         .atomic_store_release,
         .atomic_store_seq_cst,
@@ -1647,7 +1644,6 @@ pub fn mustLower(air: Air, inst: Air.Inst.Index, ip: *const InternPool) bool {
         .memcpy,
         .cmpxchg_weak,
         .cmpxchg_strong,
-        .atomic_store_unordered,
         .atomic_store_monotonic,
         .atomic_store_release,
         .atomic_store_seq_cst,

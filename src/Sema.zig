@@ -24960,8 +24960,8 @@ fn resolveAtomicOrder(
     src: LazySrcLoc,
     zir_ref: Zir.Inst.Ref,
     reason: NeededComptimeReason,
-) CompileError!std.builtin.AtomicOrder {
-    return sema.resolveBuiltinEnum(block, src, zir_ref, "AtomicOrder", reason);
+) CompileError!std.builtin.NewAtomicOrder {
+    return sema.resolveBuiltinEnum(block, src, zir_ref, "NewAtomicOrder", reason);
 }
 
 fn resolveAtomicRmwOp(
@@ -25017,10 +25017,10 @@ fn zirCmpxchg(
         .needed_comptime_reason = "atomic order of cmpxchg failure must be comptime-known",
     });
 
-    if (@intFromEnum(success_order) < @intFromEnum(std.builtin.AtomicOrder.monotonic)) {
+    if (@intFromEnum(success_order) < @intFromEnum(std.builtin.NewAtomicOrder.monotonic)) {
         return sema.fail(block, success_order_src, "success atomic ordering must be monotonic or stricter", .{});
     }
-    if (@intFromEnum(failure_order) < @intFromEnum(std.builtin.AtomicOrder.monotonic)) {
+    if (@intFromEnum(failure_order) < @intFromEnum(std.builtin.NewAtomicOrder.monotonic)) {
         return sema.fail(block, failure_order_src, "failure atomic ordering must be monotonic or stricter", .{});
     }
     if (@intFromEnum(failure_order) > @intFromEnum(success_order)) {
@@ -25589,10 +25589,6 @@ fn zirAtomicRmw(sema: *Sema, block: *Block, inst: Zir.Inst.Index) CompileError!A
         .needed_comptime_reason = "atomic order of @atomicRmW must be comptime-known",
     });
 
-    if (order == .unordered) {
-        return sema.fail(block, order_src, "@atomicRmw atomic ordering must not be unordered", .{});
-    }
-
     // special case zero bit types
     if (try sema.typeHasOnePossibleValue(elem_ty)) |val| {
         return Air.internedToRef(val.toIntern());
@@ -25667,7 +25663,6 @@ fn zirAtomicStore(sema: *Sema, block: *Block, inst: Zir.Inst.Index) CompileError
                 .{},
             );
         },
-        .unordered => .atomic_store_unordered,
         .monotonic => .atomic_store_monotonic,
         .release => .atomic_store_release,
         .seq_cst => .atomic_store_seq_cst,
@@ -27454,7 +27449,7 @@ fn zirBuiltinValue(sema: *Sema, block: *Block, extended: Zir.Inst.Extended.InstD
     const value: Zir.Inst.BuiltinValue = @enumFromInt(extended.small);
 
     const type_name = switch (value) {
-        .atomic_order => "AtomicOrder",
+        .atomic_order => "NewAtomicOrder",
         .atomic_rmw_op => "AtomicRmwOp",
         .calling_convention => "CallingConvention",
         .address_space => "AddressSpace",

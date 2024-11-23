@@ -5345,7 +5345,6 @@ pub const FuncGen = struct {
                 .reduce           => try self.airReduce(inst, .normal),
                 .reduce_optimized => try self.airReduce(inst, .fast),
 
-                .atomic_store_unordered => try self.airAtomicStore(inst, .unordered),
                 .atomic_store_monotonic => try self.airAtomicStore(inst, .monotonic),
                 .atomic_store_release   => try self.airAtomicStore(inst, .release),
                 .atomic_store_seq_cst   => try self.airAtomicStore(inst, .seq_cst),
@@ -11697,9 +11696,8 @@ pub const FuncGen = struct {
     }
 };
 
-fn toLlvmAtomicOrdering(atomic_order: std.builtin.AtomicOrder) Builder.AtomicOrdering {
+fn toLlvmAtomicOrdering(atomic_order: std.builtin.NewAtomicOrder) Builder.AtomicOrdering {
     return switch (atomic_order) {
-        .unordered => .unordered,
         .monotonic => .monotonic,
         .acquire => .acquire,
         .release => .release,

@@ -1490,7 +1490,7 @@ var vdso_clock_gettime: ?VdsoClockGettime = &init_vdso_clock_gettime;
 
 pub fn clock_gettime(clk_id: clockid_t, tp: *timespec) usize {
     if (VDSO != void) {
-        const ptr = @atomicLoad(?VdsoClockGettime, &vdso_clock_gettime, .unordered);
+        const ptr = @atomicLoad(?VdsoClockGettime, &vdso_clock_gettime, .monotonic);
         if (ptr) |f| {
             const rc = f(clk_id, tp);
             switch (rc) {

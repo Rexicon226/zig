@@ -320,7 +320,7 @@ test "concurrent access" {
                 self.rwl.lockShared();
                 defer self.rwl.unlockShared();
 
-                if (self.writes >= num_writes or self.reads.load(.unordered) >= num_reads)
+                if (self.writes >= num_writes or self.reads.load(.monotonic) >= num_reads)
                     break;
 
                 try self.check();
@@ -377,5 +377,5 @@ test "concurrent access" {
 
     try testing.expectEqual(num_writes, runner.writes);
 
-    //std.debug.print("reads={}\n", .{ runner.reads.load(.unordered)});
+    //std.debug.print("reads={}\n", .{ runner.reads.load(.monotonic)});
 }

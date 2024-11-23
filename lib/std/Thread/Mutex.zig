@@ -61,23 +61,23 @@ const DebugImpl = struct {
     inline fn tryLock(self: *@This()) bool {
         const locking = self.impl.tryLock();
         if (locking) {
-            self.locking_thread.store(Thread.getCurrentId(), .unordered);
+            self.locking_thread.store(Thread.getCurrentId(), .monotonic);
         }
         return locking;
     }
 
     inline fn lock(self: *@This()) void {
         const current_id = Thread.getCurrentId();
-        if (self.locking_thread.load(.unordered) == current_id and current_id != 0) {
+        if (self.locking_thread.load(.monotonic) == current_id and current_id != 0) {
             @panic("Deadlock detected");
         }
         self.impl.lock();
-        self.locking_thread.store(current_id, .unordered);
+        self.locking_thread.store(current_id, .monotonic);
     }
 
     inline fn unlock(self: *@This()) void {
-        assert(self.locking_thread.load(.unordered) == Thread.getCurrentId());
-        self.locking_thread.store(0, .unordered);
+        assert(self.locking_thread.load(.monotonic) == Thread.getCurrentId());
+        self.locking_thread.store(0, .monotonic);
         self.impl.unlock();
     }
 };

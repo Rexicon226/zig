@@ -305,7 +305,6 @@ const Writer = struct {
             .cmpxchg_weak, .cmpxchg_strong => try w.writeCmpxchg(s, inst),
             .atomic_load => try w.writeAtomicLoad(s, inst),
             .prefetch => try w.writePrefetch(s, inst),
-            .atomic_store_unordered => try w.writeAtomicStore(s, inst, .unordered),
             .atomic_store_monotonic => try w.writeAtomicStore(s, inst, .monotonic),
             .atomic_store_release => try w.writeAtomicStore(s, inst, .release),
             .atomic_store_seq_cst => try w.writeAtomicStore(s, inst, .seq_cst),
@@ -571,7 +570,7 @@ const Writer = struct {
         w: *Writer,
         s: anytype,
         inst: Air.Inst.Index,
-        order: std.builtin.AtomicOrder,
+        order: std.builtin.NewAtomicOrder,
     ) @TypeOf(s).Error!void {
         const bin_op = w.air.instructions.items(.data)[@intFromEnum(inst)].bin_op;
         try w.writeOperand(s, inst, 0, bin_op.lhs);

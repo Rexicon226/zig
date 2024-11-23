@@ -163,7 +163,7 @@ const WindowsImpl = struct {
 
         if (comptime builtin.mode == .Debug) {
             // The internal state of the DebugMutex needs to be handled here as well.
-            mutex.impl.locking_thread.store(0, .unordered);
+            mutex.impl.locking_thread.store(0, .monotonic);
         }
         const rc = os.windows.kernel32.SleepConditionVariableSRW(
             &self.condition,
@@ -173,7 +173,7 @@ const WindowsImpl = struct {
         );
         if (comptime builtin.mode == .Debug) {
             // The internal state of the DebugMutex needs to be handled here as well.
-            mutex.impl.locking_thread.store(std.Thread.getCurrentId(), .unordered);
+            mutex.impl.locking_thread.store(std.Thread.getCurrentId(), .monotonic);
         }
 
         // Return error.Timeout if we know the timeout elapsed correctly.

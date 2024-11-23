@@ -2437,7 +2437,6 @@ fn genBody(self: *Self, body: []const Air.Inst.Index) InnerError!void {
             .call_never_tail   => try self.airCall(inst, .never_tail),
             .call_never_inline => try self.airCall(inst, .never_inline),
 
-            .atomic_store_unordered => try self.airAtomicStore(inst, .unordered),
             .atomic_store_monotonic => try self.airAtomicStore(inst, .monotonic),
             .atomic_store_release   => try self.airAtomicStore(inst, .release),
             .atomic_store_seq_cst   => try self.airAtomicStore(inst, .seq_cst),
@@ -16222,7 +16221,7 @@ fn atomicOp(
     val_ty: Type,
     unused: bool,
     rmw_op: ?std.builtin.AtomicRmwOp,
-    order: std.builtin.AtomicOrder,
+    order: std.builtin.NewAtomicOrder,
 ) InnerError!MCValue {
     const pt = self.pt;
     const zcu = pt.zcu;
@@ -16283,7 +16282,7 @@ fn atomicOp(
                 .Xor => .xor,
                 else => unreachable,
             } else switch (order) {
-                .unordered, .monotonic, .release, .acq_rel => .mov,
+                .monotonic, .release, .acq_rel => .mov,
                 .acquire => unreachable,
                 .seq_cst => .xchg,
             };
@@ -16615,7 +16614,7 @@ fn airAtomicLoad(self: *Self, inst: Air.Inst.Index) !void {
     return self.finishAir(inst, dst_mcv, .{ atomic_load.ptr, .none, .none });
 }
 
-fn airAtomicStore(self: *Self, inst: Air.Inst.Index, order: std.builtin.AtomicOrder) !void {
+fn airAtomicStore(self: *Self, inst: Air.Inst.Index, order: std.builtin.NewAtomicOrder) !void {
     const bin_op = self.air.instructions.items(.data)[@intFromEnum(inst)].bin_op;
 
     const ptr_ty = self.typeOf(bin_op.lhs);

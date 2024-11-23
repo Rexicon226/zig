@@ -2032,7 +2032,6 @@ fn genInst(func: *CodeGen, inst: Air.Inst.Index) InnerError!void {
         => |tag| return func.fail("TODO: Implement wasm inst: {s}", .{@tagName(tag)}),
 
         .atomic_load => func.airAtomicLoad(inst),
-        .atomic_store_unordered,
         .atomic_store_monotonic,
         .atomic_store_release,
         .atomic_store_seq_cst,

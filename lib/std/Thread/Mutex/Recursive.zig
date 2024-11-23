@@ -30,10 +30,10 @@ pub const init: Recursive = .{
 /// Otherwise, returns `true` and the caller should `unlock()` the Mutex to release it.
 pub fn tryLock(r: *Recursive) bool {
     const current_thread_id = std.Thread.getCurrentId();
-    if (@atomicLoad(std.Thread.Id, &r.thread_id, .unordered) != current_thread_id) {
+    if (@atomicLoad(std.Thread.Id, &r.thread_id, .monotonic) != current_thread_id) {
         if (!r.mutex.tryLock()) return false;
         assert(r.lock_count == 0);
-        @atomicStore(std.Thread.Id, &r.thread_id, current_thread_id, .unordered);
+        @atomicStore(std.Thread.Id, &r.thread_id, current_thread_id, .monotonic);
     }
     r.lock_count += 1;
     return true;
@@ -48,10 +48,10 @@ pub fn tryLock(r: *Recursive) bool {
 /// of whether the lock was already held by the same thread.
 pub fn lock(r: *Recursive) void {
     const current_thread_id = std.Thread.getCurrentId();
-    if (@atomicLoad(std.Thread.Id, &r.thread_id, .unordered) != current_thread_id) {
+    if (@atomicLoad(std.Thread.Id, &r.thread_id, .monotonic) != current_thread_id) {
         r.mutex.lock();
         assert(r.lock_count == 0);
-        @atomicStore(std.Thread.Id, &r.thread_id, current_thread_id, .unordered);
+        @atomicStore(std.Thread.Id, &r.thread_id, current_thread_id, .monotonic);
     }
     r.lock_count += 1;
 }
@@ -63,7 +63,7 @@ pub fn lock(r: *Recursive) void {
 pub fn unlock(r: *Recursive) void {
     r.lock_count -= 1;
     if (r.lock_count == 0) {
-        @atomicStore(std.Thread.Id, &r.thread_id, invalid_thread_id, .unordered);
+        @atomicStore(std.Thread.Id, &r.thread_id, invalid_thread_id, .monotonic);
         r.mutex.unlock();
     }
 }

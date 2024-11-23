@@ -3299,7 +3299,6 @@ fn genBodyInner(f: *Function, body: []const Air.Inst.Index) error{ AnalysisFail,
 
             .int_from_ptr => try airIntFromPtr(f, inst),
 
-            .atomic_store_unordered => try airAtomicStore(f, inst, toMemoryOrder(.unordered)),
             .atomic_store_monotonic => try airAtomicStore(f, inst, toMemoryOrder(.monotonic)),
             .atomic_store_release   => try airAtomicStore(f, inst, toMemoryOrder(.release)),
             .atomic_store_seq_cst   => try airAtomicStore(f, inst, toMemoryOrder(.seq_cst)),
@@ -7580,10 +7579,9 @@ fn airCVaCopy(f: *Function, inst: Air.Inst.Index) !CValue {
     return local;
 }
 
-fn toMemoryOrder(order: std.builtin.AtomicOrder) [:0]const u8 {
+fn toMemoryOrder(order: std.builtin.NewAtomicOrder) [:0]const u8 {
     return switch (order) {
-        // Note: unordered is actually even less atomic than relaxed
-        .unordered, .monotonic => "zig_memory_order_relaxed",
+        .monotonic => "zig_memory_order_relaxed",
         .acquire => "zig_memory_order_acquire",
         .release => "zig_memory_order_release",
         .acq_rel => "zig_memory_order_acq_rel",
@@ -7591,7 +7589,7 @@ fn toMemoryOrder(order: std.builtin.AtomicOrder) [:0]const u8 {
     };
 }
 
-fn writeMemoryOrder(w: anytype, order: std.builtin.AtomicOrder) !void {
+fn writeMemoryOrder(w: anytype, order: std.builtin.NewAtomicOrder) !void {
     return w.writeAll(toMemoryOrder(order));
 }
 

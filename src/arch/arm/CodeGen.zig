@@ -798,7 +798,6 @@ fn genBody(self: *Self, body: []const Air.Inst.Index) InnerError!void {
             .call_never_tail   => try self.airCall(inst, .never_tail),
             .call_never_inline => try self.airCall(inst, .never_inline),
 
-            .atomic_store_unordered => try self.airAtomicStore(inst, .unordered),
             .atomic_store_monotonic => try self.airAtomicStore(inst, .monotonic),
             .atomic_store_release   => try self.airAtomicStore(inst, .release),
             .atomic_store_seq_cst   => try self.airAtomicStore(inst, .seq_cst),
@@ -5966,7 +5965,7 @@ fn airAtomicLoad(self: *Self, inst: Air.Inst.Index) !void {
     return self.fail("TODO implement airAtomicLoad for {}", .{self.target.cpu.arch});
 }
 
-fn airAtomicStore(self: *Self, inst: Air.Inst.Index, order: std.builtin.AtomicOrder) !void {
+fn airAtomicStore(self: *Self, inst: Air.Inst.Index, order: std.builtin.NewAtomicOrder) !void {
     _ = inst;
     _ = order;
     return self.fail("TODO implement airAtomicStore for {}", .{self.target.cpu.arch});

@@ -1663,7 +1663,6 @@ fn genBody(func: *Func, body: []const Air.Inst.Index) InnerError!void {
             .call_never_tail   => try func.airCall(inst, .never_tail),
             .call_never_inline => try func.airCall(inst, .never_inline),
 
-            .atomic_store_unordered => try func.airAtomicStore(inst, .unordered),
             .atomic_store_monotonic => try func.airAtomicStore(inst, .monotonic),
             .atomic_store_release   => try func.airAtomicStore(inst, .release),
             .atomic_store_seq_cst   => try func.airAtomicStore(inst, .seq_cst),
@@ -7518,9 +7517,6 @@ fn airCmpxchg(func: *Func, inst: Air.Inst.Index, strength: enum { weak, strong }
     }
 
     const lr_order: struct { aq: Mir.Barrier, rl: Mir.Barrier } = switch (extra.successOrder()) {
-        .unordered,
-        => unreachable,
-
         .monotonic,
         .release,
         => .{ .aq = .none, .rl = .none },
@@ -7531,7 +7527,6 @@ fn airCmpxchg(func: *Func, inst: Air.Inst.Index, strength: enum { weak, strong }
     };
 
     const sc_order: struct { aq: Mir.Barrier, rl: Mir.Barrier } = switch (extra.failureOrder()) {
-        .unordered,
         .release,
         .acq_rel,
         => unreachable,
@@ -7682,7 +7677,6 @@ fn airAtomicRmw(func: *Func, inst: Air.Inst.Index) !void {
         const result_reg = result_mcv.register;
 
         const aq, const rl = switch (order) {
-            .unordered => unreachable,
             .monotonic => .{ false, false },
             .acquire => .{ true, false },
             .release => .{ false, true },
@@ -7785,7 +7779,7 @@ fn airAtomicLoad(func: *Func, inst: Air.Inst.Index) !void {
     const pt = func.pt;
     const zcu = pt.zcu;
     const atomic_load = func.air.instructions.items(.data)[@intFromEnum(inst)].atomic_load;
-    const order: std.builtin.AtomicOrder = atomic_load.order;
+    const order: std.builtin.NewAtomicOrder = atomic_load.order;
 
     const ptr_ty = func.typeOf(atomic_load.ptr);
     const elem_ty = ptr_ty.childType(zcu);
@@ -7811,7 +7805,6 @@ fn airAtomicLoad(func: *Func, inst: Air.Inst.Index) !void {
 
     switch (order) {
         // Don't guarnetee other memory operations to be ordered after the load.
-        .unordered => {},
         .monotonic => {},
         // Make sure all previous reads happen before any reading or writing accurs.
         .seq_cst, .acquire => {
@@ -7829,7 +7822,7 @@ fn airAtomicLoad(func: *Func, inst: Air.Inst.Index) !void {
     return func.finishAir(inst, result_mcv, .{ atomic_load.ptr, .none, .none });
 }
 
-fn airAtomicStore(func: *Func, inst: Air.Inst.Index, order: std.builtin.AtomicOrder) !void {
+fn airAtomicStore(func: *Func, inst: Air.Inst.Index, order: std.builtin.NewAtomicOrder) !void {
     const bin_op = func.air.instructions.items(.data)[@intFromEnum(inst)].bin_op;
 
     const ptr_ty = func.typeOf(bin_op.lhs);
@@ -7842,7 +7835,7 @@ fn airAtomicStore(func: *Func, inst: Air.Inst.Index, order: std.builtin.AtomicOr
     if (bit_size > 64) return func.fail("TODO: airAtomicStore > 64 bits", .{});
 
     switch (order) {
-        .unordered, .monotonic => {},
+        .monotonic => {},
         .release, .seq_cst => {
             _ = try func.addInst(.{
                 .tag = .fence,

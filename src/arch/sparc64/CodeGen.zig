@@ -653,7 +653,6 @@ fn genBody(self: *Self, body: []const Air.Inst.Index) InnerError!void {
             .call_never_tail   => try self.airCall(inst, .never_tail),
             .call_never_inline => try self.airCall(inst, .never_inline),
 
-            .atomic_store_unordered => @panic("TODO try self.airAtomicStore(inst, .unordered)"),
             .atomic_store_monotonic => @panic("TODO try self.airAtomicStore(inst, .monotonic)"),
             .atomic_store_release   => @panic("TODO try self.airAtomicStore(inst, .release)"),
             .atomic_store_seq_cst   => @panic("TODO try self.airAtomicStore(inst, .seq_cst)"),

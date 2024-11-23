@@ -234,7 +234,7 @@ pub fn flush_sq(self: *IoUring) u32 {
 pub fn sq_ring_needs_enter(self: *IoUring, flags: *u32) bool {
     assert(flags.* == 0);
     if ((self.flags & linux.IORING_SETUP_SQPOLL) == 0) return true;
-    if ((@atomicLoad(u32, self.sq.flags, .unordered) & linux.IORING_SQ_NEED_WAKEUP) != 0) {
+    if ((@atomicLoad(u32, self.sq.flags, .monotonic) & linux.IORING_SQ_NEED_WAKEUP) != 0) {
         flags.* |= linux.IORING_ENTER_SQ_WAKEUP;
         return true;
     }
@@ -309,7 +309,7 @@ pub fn copy_cqe(ring: *IoUring) !linux.io_uring_cqe {
 
 /// Matches the implementation of cq_ring_needs_flush() in liburing.
 pub fn cq_ring_needs_flush(self: *IoUring) bool {
-    return (@atomicLoad(u32, self.sq.flags, .unordered) & linux.IORING_SQ_CQ_OVERFLOW) != 0;
+    return (@atomicLoad(u32, self.sq.flags, .monotonic) & linux.IORING_SQ_CQ_OVERFLOW) != 0;
 }
 
 /// For advanced use cases only that implement custom completion queue methods.

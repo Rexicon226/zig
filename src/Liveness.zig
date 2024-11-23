@@ -300,7 +300,6 @@ pub fn categorizeOperand(
 
         .store,
         .store_safe,
-        .atomic_store_unordered,
         .atomic_store_monotonic,
         .atomic_store_release,
         .atomic_store_seq_cst,
@@ -947,7 +946,6 @@ fn analyzeInst(
         .shl_sat,
         .shr,
         .shr_exact,
-        .atomic_store_unordered,
         .atomic_store_monotonic,
         .atomic_store_release,
         .atomic_store_seq_cst,
