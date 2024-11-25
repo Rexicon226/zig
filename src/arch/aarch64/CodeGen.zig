@@ -5997,7 +5997,7 @@ fn airAtomicLoad(self: *Self, inst: Air.Inst.Index) !void {
     return self.fail("TODO implement airAtomicLoad for {}", .{self.target.cpu.arch});
 }
 
-fn airAtomicStore(self: *Self, inst: Air.Inst.Index, order: std.builtin.NewAtomicOrder) !void {
+fn airAtomicStore(self: *Self, inst: Air.Inst.Index, order: std.builtin.AtomicOrder) !void {
     _ = inst;
     _ = order;
     return self.fail("TODO implement airAtomicStore for {}", .{self.target.cpu.arch});

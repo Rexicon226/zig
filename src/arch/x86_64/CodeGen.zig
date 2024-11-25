@@ -16221,7 +16221,7 @@ fn atomicOp(
     val_ty: Type,
     unused: bool,
     rmw_op: ?std.builtin.AtomicRmwOp,
-    order: std.builtin.NewAtomicOrder,
+    order: std.builtin.AtomicOrder,
 ) InnerError!MCValue {
     const pt = self.pt;
     const zcu = pt.zcu;
@@ -16614,7 +16614,7 @@ fn airAtomicLoad(self: *Self, inst: Air.Inst.Index) !void {
     return self.finishAir(inst, dst_mcv, .{ atomic_load.ptr, .none, .none });
 }
 
-fn airAtomicStore(self: *Self, inst: Air.Inst.Index, order: std.builtin.NewAtomicOrder) !void {
+fn airAtomicStore(self: *Self, inst: Air.Inst.Index, order: std.builtin.AtomicOrder) !void {
     const bin_op = self.air.instructions.items(.data)[@intFromEnum(inst)].bin_op;
 
     const ptr_ty = self.typeOf(bin_op.lhs);

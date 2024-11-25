@@ -7779,7 +7779,7 @@ fn airAtomicLoad(func: *Func, inst: Air.Inst.Index) !void {
     const pt = func.pt;
     const zcu = pt.zcu;
     const atomic_load = func.air.instructions.items(.data)[@intFromEnum(inst)].atomic_load;
-    const order: std.builtin.NewAtomicOrder = atomic_load.order;
+    const order: std.builtin.AtomicOrder = atomic_load.order;
 
     const ptr_ty = func.typeOf(atomic_load.ptr);
     const elem_ty = ptr_ty.childType(zcu);
@@ -7822,7 +7822,7 @@ fn airAtomicLoad(func: *Func, inst: Air.Inst.Index) !void {
     return func.finishAir(inst, result_mcv, .{ atomic_load.ptr, .none, .none });
 }
 
-fn airAtomicStore(func: *Func, inst: Air.Inst.Index, order: std.builtin.NewAtomicOrder) !void {
+fn airAtomicStore(func: *Func, inst: Air.Inst.Index, order: std.builtin.AtomicOrder) !void {
     const bin_op = func.air.instructions.items(.data)[@intFromEnum(inst)].bin_op;
 
     const ptr_ty = func.typeOf(bin_op.lhs);

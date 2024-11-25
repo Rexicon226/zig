@@ -11696,7 +11696,7 @@ pub const FuncGen = struct {
     }
 };
 
-fn toLlvmAtomicOrdering(atomic_order: std.builtin.NewAtomicOrder) Builder.AtomicOrdering {
+fn toLlvmAtomicOrdering(atomic_order: std.builtin.AtomicOrder) Builder.AtomicOrdering {
     return switch (atomic_order) {
         .monotonic => .monotonic,
         .acquire => .acquire,

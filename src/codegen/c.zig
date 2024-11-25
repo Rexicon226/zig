@@ -7579,7 +7579,7 @@ fn airCVaCopy(f: *Function, inst: Air.Inst.Index) !CValue {
     return local;
 }
 
-fn toMemoryOrder(order: std.builtin.NewAtomicOrder) [:0]const u8 {
+fn toMemoryOrder(order: std.builtin.AtomicOrder) [:0]const u8 {
     return switch (order) {
         .monotonic => "zig_memory_order_relaxed",
         .acquire => "zig_memory_order_acquire",
@@ -7589,7 +7589,7 @@ fn toMemoryOrder(order: std.builtin.NewAtomicOrder) [:0]const u8 {
     };
 }
 
-fn writeMemoryOrder(w: anytype, order: std.builtin.NewAtomicOrder) !void {
+fn writeMemoryOrder(w: anytype, order: std.builtin.AtomicOrder) !void {
     return w.writeAll(toMemoryOrder(order));
 }
 

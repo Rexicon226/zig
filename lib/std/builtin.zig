@@ -79,7 +79,6 @@ pub const SymbolVisibility = enum {
 /// This data structure is used by the Zig language code generation and
 /// therefore must be kept in sync with the compiler implementation.
 pub const AtomicOrder = enum {
-    unordered,
     monotonic,
     acquire,
     release,

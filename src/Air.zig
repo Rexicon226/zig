@@ -1062,7 +1062,7 @@ pub const Inst = struct {
         },
         atomic_load: struct {
             ptr: Ref,
-            order: std.builtin.NewAtomicOrder,
+            order: std.builtin.AtomicOrder,
         },
         prefetch: struct {
             ptr: Ref,
@@ -1245,11 +1245,11 @@ pub const Cmpxchg = struct {
     /// 0b00000000000000000000000000XXX000 - failure_order
     flags: u32,
 
-    pub fn successOrder(self: Cmpxchg) std.builtin.NewAtomicOrder {
+    pub fn successOrder(self: Cmpxchg) std.builtin.AtomicOrder {
         return @enumFromInt(@as(u3, @truncate(self.flags)));
     }
 
-    pub fn failureOrder(self: Cmpxchg) std.builtin.NewAtomicOrder {
+    pub fn failureOrder(self: Cmpxchg) std.builtin.AtomicOrder {
         return @enumFromInt(@as(u3, @truncate(self.flags >> 3)));
     }
 };
@@ -1260,7 +1260,7 @@ pub const AtomicRmw = struct {
     /// 0b0000000000000000000000000XXXX000 - op
     flags: u32,
 
-    pub fn ordering(self: AtomicRmw) std.builtin.NewAtomicOrder {
+    pub fn ordering(self: AtomicRmw) std.builtin.AtomicOrder {
         return @enumFromInt(@as(u3, @truncate(self.flags)));
     }
 

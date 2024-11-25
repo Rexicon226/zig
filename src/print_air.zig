@@ -570,7 +570,7 @@ const Writer = struct {
         w: *Writer,
         s: anytype,
         inst: Air.Inst.Index,
-        order: std.builtin.NewAtomicOrder,
+        order: std.builtin.AtomicOrder,
     ) @TypeOf(s).Error!void {
         const bin_op = w.air.instructions.items(.data)[@intFromEnum(inst)].bin_op;
         try w.writeOperand(s, inst, 0, bin_op.lhs);
