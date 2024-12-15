@@ -1879,6 +1879,9 @@ const riscv = struct {
             .LO12_S,
             .ADD32,
             .SUB32,
+
+            .SUB_ULEB128,
+            .SET_ULEB128,
             => {},
 
             else => try atom.reportUnhandledRelocError(rel, elf_file),
@@ -2067,6 +2070,9 @@ const riscv = struct {
 
             .SET6 => riscv_util.writeSetSub6(.set, code[r_offset..][0..1], S + A),
             .SUB6 => riscv_util.writeSetSub6(.sub, code[r_offset..][0..1], S + A),
+
+            .SET_ULEB128 => try riscv_util.writeSetSubUleb(.set, stream, S + A),
+            .SUB_ULEB128 => try riscv_util.writeSetSubUleb(.sub, stream, S - A),
 
             else => try atom.reportUnhandledRelocError(rel, elf_file),
         }
