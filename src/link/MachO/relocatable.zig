@@ -14,6 +14,10 @@ pub fn flushObject(macho_file: *MachO, comp: *Compilation, module_obj_path: ?Pat
 
     if (module_obj_path) |path| try positionals.append(try link.openObjectInput(diags, path));
 
+    if (comp.include_compiler_rt) {
+        try positionals.append(try link.openObjectInput(diags, comp.compiler_rt_obj.?.full_object_path));
+    }
+
     if (macho_file.getZigObject() == null and positionals.items.len == 1) {
         // Instead of invoking a full-blown `-r` mode on the input which sadly will strip all
         // debug info segments/sections (this is apparently by design by Apple), we copy

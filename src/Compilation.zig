@@ -1290,9 +1290,14 @@ pub fn create(gpa: Allocator, arena: Allocator, options: CreateOptions) !*Compil
         const include_compiler_rt = options.want_compiler_rt orelse
             (!options.skip_linker_dependencies and is_exe_or_dyn_lib);
 
-        if (include_compiler_rt and output_mode == .Obj) {
-            // For objects, this mechanism relies on essentially `_ = @import("compiler-rt");`
-            // injected into the object.
+        // Normally when using compiler-rt we would build it into a static library because:
+        // 1. it doesn't use the standard library much, so there isn't much risk of code bloat.
+        // 2. we'd rather globally cache the compiler-rt artifact as it's quite slow to build.
+        //
+        // The one exception to this is when we're building an object with a ZCU. In that case
+        // we can essentially `_ = @import("compiler_rt")` to inject it, without going through
+        // the linker again.
+        if (include_compiler_rt and output_mode == .Obj and have_zcu) {
             const compiler_rt_mod = try Package.Module.create(arena, .{
                 .global_cache_directory = options.global_cache_directory,
                 .paths = .{
@@ -1876,13 +1881,20 @@ pub fn create(gpa: Allocator, arena: Allocator, options: CreateOptions) !*Compil
             }
 
             if (comp.include_compiler_rt and capable_of_building_compiler_rt) {
+                // When we need to include compiler-rt, we'd usually build it as a static library
+                // and link to the executable (or dynamic library).
+                // However when we're building a static library, we should build compiler-rt as an object.
+                // Linking the compiler-rt static library to our output static library would just
+                // be extra work for the linker, as it'd need to parse out compiler_rt.o anyways.
+                //
+                // The other case we'd want to build compiler-rt as an object is when we're outputting
+                // an object, but there's no ZCU to bypass the linker with. A similar argument is applied
+                // to the one used with static libraries.
                 if (is_exe_or_dyn_lib) {
                     log.debug("queuing a job to build compiler_rt_lib", .{});
                     comp.job_queued_compiler_rt_lib = true;
-                } else if (output_mode != .Obj) {
+                } else if (!have_zcu or output_mode != .Obj) {
                     log.debug("queuing a job to build compiler_rt_obj", .{});
-                    // In this case we are making a static library, so we ask
-                    // for a compiler-rt object to put in it.
                     comp.job_queued_compiler_rt_obj = true;
                 }
             }

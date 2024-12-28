@@ -773,10 +773,10 @@ fn dumpArgv(self: *MachO, comp: *Compilation) !void {
         }
 
         try argv.append("-lSystem");
-
-        if (comp.compiler_rt_lib) |lib| try argv.append(try lib.full_object_path.toString(arena));
-        if (comp.compiler_rt_obj) |obj| try argv.append(try obj.full_object_path.toString(arena));
     }
+
+    if (comp.compiler_rt_lib) |lib| try argv.append(try lib.full_object_path.toString(arena));
+    if (comp.compiler_rt_obj) |obj| try argv.append(try obj.full_object_path.toString(arena));
 
     Compilation.dump_argv(argv.items);
 }
