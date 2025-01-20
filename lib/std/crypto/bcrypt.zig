@@ -12,9 +12,7 @@ const Sha512 = crypto.hash.sha2.Sha512;
 
 const phc_format = @import("phc_encoding.zig");
 
-const KdfError = pwhash.KdfError;
 const HasherError = pwhash.HasherError;
-const EncodingError = phc_format.Error;
 const Error = pwhash.Error;
 
 const salt_length: usize = 16;

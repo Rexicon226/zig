@@ -950,7 +950,6 @@ const Export = struct {
 
 const assert = std.debug.assert;
 const fat = @import("fat.zig");
-const fs = std.fs;
 const fmt = std.fmt;
 const log = std.log.scoped(.link);
 const macho = std.macho;

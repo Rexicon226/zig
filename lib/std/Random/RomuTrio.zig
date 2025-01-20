@@ -3,7 +3,6 @@
 // Beware: this PRNG is trivially predictable. While fast, it should *never* be used for cryptographic purposes.
 
 const std = @import("std");
-const math = std.math;
 const RomuTrio = @This();
 
 x_state: u64,

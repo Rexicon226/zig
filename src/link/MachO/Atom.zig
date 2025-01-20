@@ -1215,7 +1215,6 @@ const relocs_log = std.log.scoped(.link_relocs);
 const std = @import("std");
 const trace = @import("../../tracy.zig").trace;
 
-const Allocator = mem.Allocator;
 const Atom = @This();
 const AtomicBool = std.atomic.Value(bool);
 const File = @import("file.zig").File;

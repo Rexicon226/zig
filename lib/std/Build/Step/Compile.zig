@@ -14,7 +14,6 @@ const PkgConfigPkg = std.Build.PkgConfigPkg;
 const PkgConfigError = std.Build.PkgConfigError;
 const RunError = std.Build.RunError;
 const Module = std.Build.Module;
-const InstallDir = std.Build.InstallDir;
 const GeneratedFile = std.Build.GeneratedFile;
 const Compile = @This();
 const Path = std.Build.Cache.Path;

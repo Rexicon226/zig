@@ -7,11 +7,8 @@ const Value = @import("Value.zig");
 const Zcu = @import("Zcu.zig");
 const Sema = @import("Sema.zig");
 const InternPool = @import("InternPool.zig");
-const Allocator = std.mem.Allocator;
-const Target = std.Target;
 
 const max_aggregate_items = 100;
-const max_string_len = 256;
 
 pub const FormatContext = struct {
     val: Value,

@@ -8,7 +8,6 @@ const fmt = std.fmt;
 const io = std.io;
 const math = std.math;
 const mem = std.mem;
-const meta = std.meta;
 const pwhash = crypto.pwhash;
 
 const phc_format = @import("phc_encoding.zig");

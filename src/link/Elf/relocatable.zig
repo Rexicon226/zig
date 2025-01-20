@@ -467,7 +467,6 @@ const log = std.log.scoped(.link);
 const math = std.math;
 const mem = std.mem;
 const state_log = std.log.scoped(.link_state);
-const Path = std.Build.Cache.Path;
 const std = @import("std");
 
 const Archive = @import("Archive.zig");

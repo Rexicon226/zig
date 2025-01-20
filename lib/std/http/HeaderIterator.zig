@@ -94,4 +94,3 @@ test next {
 
 const HeaderIterator = @This();
 const std = @import("../std.zig");
-const assert = std.debug.assert;

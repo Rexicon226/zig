@@ -1,6 +1,4 @@
 const std = @import("std");
-const math = std.math;
-const mem = std.mem;
 const assert = std.debug.assert;
 const Allocator = std.mem.Allocator;
 const Air = @import("Air.zig");

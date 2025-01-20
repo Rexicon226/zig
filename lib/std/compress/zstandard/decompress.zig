@@ -5,8 +5,6 @@ const RingBuffer = std.RingBuffer;
 
 const types = @import("types.zig");
 const frame = types.frame;
-const LiteralsSection = types.compressed_block.LiteralsSection;
-const SequencesSection = types.compressed_block.SequencesSection;
 const SkippableHeader = types.frame.Skippable.Header;
 const ZstandardHeader = types.frame.Zstandard.Header;
 const Table = types.compressed_block.Table;

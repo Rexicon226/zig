@@ -622,7 +622,6 @@ const math = std.math;
 const relocs_log = std.log.scoped(.link_relocs);
 const relocation = @import("relocation.zig");
 
-const Allocator = std.mem.Allocator;
 const Atom = @import("Atom.zig");
 const DW_EH_PE = std.dwarf.EH.PE;
 const Elf = @import("../Elf.zig");

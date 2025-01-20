@@ -7,7 +7,6 @@ const posix = std.posix;
 const fs = std.fs;
 const testing = std.testing;
 const root = @import("root");
-const File = std.fs.File;
 const windows = std.os.windows;
 const native_arch = builtin.cpu.arch;
 const native_os = builtin.os.tag;

@@ -1,7 +1,6 @@
 const std = @import("../../std.zig");
 const tls = std.crypto.tls;
 const Client = @This();
-const net = std.net;
 const mem = std.mem;
 const crypto = std.crypto;
 const assert = std.debug.assert;

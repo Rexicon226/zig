@@ -1,7 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const mem = std.mem;
-const os = std.os;
 const fs = std.fs;
 const Compilation = @import("Compilation.zig");
 const build_options = @import("build_options");

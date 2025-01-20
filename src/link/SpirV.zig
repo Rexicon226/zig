@@ -43,7 +43,6 @@ const Value = @import("../Value.zig");
 const SpvModule = @import("../codegen/spirv/Module.zig");
 const Section = @import("../codegen/spirv/Section.zig");
 const spec = @import("../codegen/spirv/spec.zig");
-const IdResult = spec.IdResult;
 const Word = spec.Word;
 
 const BinaryModule = @import("SpirV/BinaryModule.zig");

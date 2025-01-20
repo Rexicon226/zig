@@ -2,7 +2,6 @@ const std = @import("std");
 const crypto = std.crypto;
 const debug = std.debug;
 const mem = std.mem;
-const math = std.math;
 const testing = std.testing;
 const Ascon = crypto.core.Ascon(.big);
 const AuthenticationError = crypto.errors.AuthenticationError;

@@ -12,7 +12,6 @@ const Zcu = @import("Zcu.zig");
 const Sema = @import("Sema.zig");
 const InternPool = @import("InternPool.zig");
 const Zir = std.zig.Zir;
-const Decl = Zcu.Decl;
 const dev = @import("dev.zig");
 
 /// To use these crash report diagnostics, publish this panic in your main file

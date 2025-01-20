@@ -7,7 +7,6 @@ const Step = std.Build.Step;
 const Coverage = std.debug.Coverage;
 const abi = std.Build.Fuzz.abi;
 const log = std.log;
-const assert = std.debug.assert;
 const Cache = std.Build.Cache;
 const Path = Cache.Path;
 

@@ -12,7 +12,6 @@ const EnvMap = std.process.EnvMap;
 const maxInt = std.math.maxInt;
 const assert = std.debug.assert;
 const native_os = builtin.os.tag;
-const Allocator = std.mem.Allocator;
 const ChildProcess = @This();
 
 pub const Id = switch (native_os) {

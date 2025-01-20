@@ -8,15 +8,7 @@
 //! documentation and/or contributors.
 
 const std = @import("std.zig");
-const io = std.io;
-const math = std.math;
-const mem = std.mem;
-const coff = std.coff;
-const fs = std.fs;
 const File = std.fs.File;
-const debug = std.debug;
-
-const ArrayList = std.ArrayList;
 
 /// https://llvm.org/docs/PDB/DbiStream.html#stream-header
 pub const DbiStreamHeader = extern struct {

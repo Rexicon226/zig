@@ -2,7 +2,6 @@ const Emit = @This();
 
 const std = @import("std");
 const assert = std.debug.assert;
-const Allocator = std.mem.Allocator;
 const leb = std.leb;
 
 const Wasm = link.File.Wasm;

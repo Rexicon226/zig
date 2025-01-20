@@ -1,5 +1,4 @@
 const std = @import("std");
-const assert = std.debug.assert;
 const mem = std.mem;
 
 /// Describes how pointer types should be hashed.

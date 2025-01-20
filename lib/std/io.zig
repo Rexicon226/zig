@@ -1,16 +1,13 @@
 const std = @import("std.zig");
 const builtin = @import("builtin");
 const root = @import("root");
-const c = std.c;
 const is_windows = builtin.os.tag == .windows;
 const windows = std.os.windows;
 const posix = std.posix;
 
 const math = std.math;
-const assert = std.debug.assert;
 const fs = std.fs;
 const mem = std.mem;
-const meta = std.meta;
 const File = std.fs.File;
 const Allocator = std.mem.Allocator;
 

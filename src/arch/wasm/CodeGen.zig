@@ -11,7 +11,6 @@ const CodeGen = @This();
 const codegen = @import("../../codegen.zig");
 const Zcu = @import("../../Zcu.zig");
 const InternPool = @import("../../InternPool.zig");
-const Decl = Zcu.Decl;
 const Type = @import("../../Type.zig");
 const Value = @import("../../Value.zig");
 const Compilation = @import("../../Compilation.zig");

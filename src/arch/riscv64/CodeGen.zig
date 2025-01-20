@@ -18,7 +18,6 @@ const Zcu = @import("../../Zcu.zig");
 const Package = @import("../../Package.zig");
 const InternPool = @import("../../InternPool.zig");
 const Compilation = @import("../../Compilation.zig");
-const target_util = @import("../../target.zig");
 const trace = @import("../../tracy.zig").trace;
 const codegen = @import("../../codegen.zig");
 
@@ -48,7 +47,6 @@ const Memory = bits.Memory;
 const FrameIndex = bits.FrameIndex;
 const RegisterManager = abi.RegisterManager;
 const RegisterLock = RegisterManager.RegisterLock;
-const Instruction = encoding.Instruction;
 
 const InnerError = CodeGenError || error{OutOfRegisters};
 

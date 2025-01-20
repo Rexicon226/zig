@@ -4,7 +4,6 @@
 //! https://doc.rust-lang.org/rand/src/rand/prng/isaac64.rs.html
 
 const std = @import("std");
-const mem = std.mem;
 const Isaac64 = @This();
 
 r: [256]u64,

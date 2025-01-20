@@ -5,7 +5,6 @@
 
 const std = @import("std");
 const builtin = @import("builtin");
-const Allocator = std.mem.Allocator;
 const Value = @import("Value.zig");
 const assert = std.debug.assert;
 const Target = std.Target;

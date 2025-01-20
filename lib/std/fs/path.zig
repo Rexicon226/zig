@@ -18,13 +18,9 @@ const debug = std.debug;
 const assert = debug.assert;
 const testing = std.testing;
 const mem = std.mem;
-const fmt = std.fmt;
 const ascii = std.ascii;
 const Allocator = mem.Allocator;
-const math = std.math;
 const windows = std.os.windows;
-const os = std.os;
-const fs = std.fs;
 const process = std.process;
 const native_os = builtin.target.os.tag;
 

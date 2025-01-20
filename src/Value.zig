@@ -5,7 +5,6 @@ const Type = @import("Type.zig");
 const assert = std.debug.assert;
 const BigIntConst = std.math.big.int.Const;
 const BigIntMutable = std.math.big.int.Mutable;
-const Target = std.Target;
 const Allocator = std.mem.Allocator;
 const Zcu = @import("Zcu.zig");
 const Sema = @import("Sema.zig");

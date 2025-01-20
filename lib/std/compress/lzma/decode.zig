@@ -1,12 +1,10 @@
 const std = @import("../../std.zig");
 const assert = std.debug.assert;
-const math = std.math;
 const Allocator = std.mem.Allocator;
 
 pub const lzbuffer = @import("decode/lzbuffer.zig");
 pub const rangecoder = @import("decode/rangecoder.zig");
 
-const LzCircularBuffer = lzbuffer.LzCircularBuffer;
 const BitTree = rangecoder.BitTree;
 const LenDecoder = rangecoder.LenDecoder;
 const RangeDecoder = rangecoder.RangeDecoder;

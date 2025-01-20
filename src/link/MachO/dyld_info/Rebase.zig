@@ -648,8 +648,6 @@ test "rebase - composite" {
 }
 
 const std = @import("std");
-const assert = std.debug.assert;
-const leb = std.leb;
 const log = std.log.scoped(.link_dyld_info);
 const macho = std.macho;
 const mem = std.mem;

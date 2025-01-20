@@ -1,7 +1,6 @@
 const std = @import("std");
 const testing = std.testing;
 const zip = @import("../zip.zig");
-const maxInt = std.math.maxInt;
 
 pub const File = struct {
     name: []const u8,

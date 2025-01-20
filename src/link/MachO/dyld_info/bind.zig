@@ -683,12 +683,9 @@ fn done(writer: anytype) !void {
     try writer.writeByte(macho.BIND_OPCODE_DONE);
 }
 
-const assert = std.debug.assert;
-const leb = std.leb;
 const log = std.log.scoped(.link_dyld_info);
 const macho = std.macho;
 const mem = std.mem;
-const testing = std.testing;
 const trace = @import("../../../tracy.zig").trace;
 const std = @import("std");
 

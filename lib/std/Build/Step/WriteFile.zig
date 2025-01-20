@@ -4,7 +4,6 @@
 const std = @import("std");
 const Step = std.Build.Step;
 const fs = std.fs;
-const ArrayList = std.ArrayList;
 const WriteFile = @This();
 
 step: Step,

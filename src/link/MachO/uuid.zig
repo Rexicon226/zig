@@ -39,11 +39,9 @@ inline fn conform(out: *[Md5.digest_length]u8) void {
 }
 
 const fs = std.fs;
-const mem = std.mem;
 const std = @import("std");
 const trace = @import("../../tracy.zig").trace;
 
 const Compilation = @import("../../Compilation.zig");
 const Md5 = std.crypto.hash.Md5;
 const Hasher = @import("hasher.zig").ParallelHasher;
-const ThreadPool = std.Thread.Pool;

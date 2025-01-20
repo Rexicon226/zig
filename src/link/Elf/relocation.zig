@@ -165,7 +165,6 @@ fn formatRelocType(
     }
 }
 
-const assert = std.debug.assert;
 const elf = std.elf;
 const std = @import("std");
 

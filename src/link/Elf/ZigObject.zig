@@ -2369,5 +2369,4 @@ const Symbol = @import("Symbol.zig");
 const StringTable = @import("../StringTable.zig");
 const Type = @import("../../Type.zig");
 const Value = @import("../../Value.zig");
-const AnalUnit = InternPool.AnalUnit;
 const ZigObject = @This();

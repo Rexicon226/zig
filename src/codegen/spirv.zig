@@ -6,7 +6,6 @@ const assert = std.debug.assert;
 const Signedness = std.builtin.Signedness;
 
 const Zcu = @import("../Zcu.zig");
-const Decl = Zcu.Decl;
 const Type = @import("../Type.zig");
 const Value = @import("../Value.zig");
 const Air = @import("../Air.zig");
@@ -18,13 +17,11 @@ const Opcode = spec.Opcode;
 const Word = spec.Word;
 const IdRef = spec.IdRef;
 const IdResult = spec.IdResult;
-const IdResultType = spec.IdResultType;
 const StorageClass = spec.StorageClass;
 
 const SpvModule = @import("spirv/Module.zig");
 const IdRange = SpvModule.IdRange;
 
-const SpvSection = @import("spirv/Section.zig");
 const SpvAssembler = @import("spirv/Assembler.zig");
 
 const InstMap = std.AutoHashMapUnmanaged(Air.Inst.Index, IdRef);

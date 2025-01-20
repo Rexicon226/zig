@@ -2,7 +2,6 @@ const std = @import("std.zig");
 const builtin = @import("builtin");
 const assert = std.debug.assert;
 const testing = std.testing;
-const math = std.math;
 const windows = std.os.windows;
 const posix = std.posix;
 

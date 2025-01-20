@@ -129,10 +129,8 @@ const aarch64 = struct {
     const Instruction = util.Instruction;
 };
 
-const assert = std.debug.assert;
 const elf = std.elf;
 const log = std.log.scoped(.link);
-const math = std.math;
 const mem = std.mem;
 const std = @import("std");
 

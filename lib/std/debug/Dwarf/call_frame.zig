@@ -1,11 +1,6 @@
 const builtin = @import("builtin");
 const std = @import("../../std.zig");
-const mem = std.mem;
-const debug = std.debug;
 const leb = std.leb;
-const DW = std.dwarf;
-const abi = std.debug.Dwarf.abi;
-const assert = std.debug.assert;
 const native_endian = builtin.cpu.arch.endian();
 
 /// TODO merge with std.dwarf.CFA

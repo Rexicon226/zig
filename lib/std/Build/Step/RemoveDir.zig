@@ -1,5 +1,4 @@
 const std = @import("std");
-const fs = std.fs;
 const Step = std.Build.Step;
 const RemoveDir = @This();
 const LazyPath = std.Build.LazyPath;

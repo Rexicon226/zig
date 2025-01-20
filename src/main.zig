@@ -6,7 +6,6 @@ const fs = std.fs;
 const mem = std.mem;
 const process = std.process;
 const Allocator = mem.Allocator;
-const ArrayList = std.ArrayList;
 const Ast = std.zig.Ast;
 const Color = std.zig.Color;
 const warn = std.log.warn;

@@ -108,13 +108,10 @@ const trampoline_size = 3 * @sizeOf(u32);
 pub const Index = u32;
 
 const aarch64 = @import("../aarch64.zig");
-const assert = std.debug.assert;
 const log = std.log.scoped(.link);
 const macho = std.macho;
-const math = std.math;
 const mem = std.mem;
 const std = @import("std");
-const trace = @import("../../tracy.zig").trace;
 
 const Allocator = mem.Allocator;
 const Atom = @import("Atom.zig");

@@ -1,6 +1,5 @@
 const std = @import("std.zig");
 const builtin = @import("builtin");
-const assert = std.debug.assert;
 const math = std.math;
 
 /// Provides deterministic randomness in unit tests.

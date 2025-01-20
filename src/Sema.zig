@@ -38566,10 +38566,6 @@ fn resolveDeclaredEnumInner(
 pub const bitCastVal = @import("Sema/bitcast.zig").bitCast;
 pub const bitCastSpliceVal = @import("Sema/bitcast.zig").bitCastSplice;
 
-const loadComptimePtr = @import("Sema/comptime_ptr_access.zig").loadComptimePtr;
-const ComptimeLoadResult = @import("Sema/comptime_ptr_access.zig").ComptimeLoadResult;
-const storeComptimePtr = @import("Sema/comptime_ptr_access.zig").storeComptimePtr;
-const ComptimeStoreResult = @import("Sema/comptime_ptr_access.zig").ComptimeStoreResult;
 
 pub fn getBuiltinType(sema: *Sema, src: LazySrcLoc, decl: Zcu.BuiltinDecl) SemaError!Type {
     assert(decl.kind() == .type);

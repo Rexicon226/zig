@@ -542,11 +542,9 @@ const assert = std.debug.assert;
 const leb = std.leb;
 const macho = std.macho;
 const math = std.math;
-const mem = std.mem;
 const std = @import("std");
 const trace = @import("../../tracy.zig").trace;
 
-const Allocator = std.mem.Allocator;
 const Atom = @import("Atom.zig");
 const DW_EH_PE = std.dwarf.EH.PE;
 const File = @import("file.zig").File;

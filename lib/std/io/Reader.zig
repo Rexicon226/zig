@@ -374,10 +374,8 @@ pub fn discard(self: Self) anyerror!u64 {
 
 const std = @import("../std.zig");
 const Self = @This();
-const math = std.math;
 const assert = std.debug.assert;
 const mem = std.mem;
-const testing = std.testing;
 const native_endian = @import("builtin").target.cpu.arch.endian();
 
 test {

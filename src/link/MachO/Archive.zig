@@ -301,7 +301,6 @@ pub const ArState = struct {
 const fat = @import("fat.zig");
 const link = @import("../../link.zig");
 const log = std.log.scoped(.link);
-const macho = std.macho;
 const mem = std.mem;
 const std = @import("std");
 const Allocator = mem.Allocator;

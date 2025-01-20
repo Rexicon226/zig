@@ -1,7 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const Allocator = std.mem.Allocator;
-const ArrayList = std.ArrayList;
 const BitStack = std.BitStack;
 
 const OBJECT_MODE = 0;

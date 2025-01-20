@@ -584,7 +584,6 @@ pub const RegisterClass = struct {
 const builtin = @import("builtin");
 const std = @import("std");
 const assert = std.debug.assert;
-const testing = std.testing;
 
 const InternPool = @import("../../InternPool.zig");
 const Register = @import("bits.zig").Register;

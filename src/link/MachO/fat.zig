@@ -1,5 +1,4 @@
 const std = @import("std");
-const assert = std.debug.assert;
 const builtin = @import("builtin");
 const log = std.log.scoped(.macho);
 const macho = std.macho;

@@ -290,7 +290,6 @@ const std = @import("../../std.zig");
 const assert = std.debug.assert;
 const fs = std.fs;
 const mem = std.mem;
-const crypto = std.crypto;
 const Allocator = std.mem.Allocator;
 const Certificate = std.crypto.Certificate;
 const der = Certificate.der;

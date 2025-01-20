@@ -1,7 +1,6 @@
 const std = @import("std");
 const Type = @import("../../Type.zig");
 const Zcu = @import("../../Zcu.zig");
-const assert = std.debug.assert;
 
 pub const Class = union(enum) {
     memory,

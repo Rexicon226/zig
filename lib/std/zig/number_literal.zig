@@ -1,7 +1,4 @@
 const std = @import("../std.zig");
-const assert = std.debug.assert;
-const utf8Decode = std.unicode.utf8Decode;
-const utf8Encode = std.unicode.utf8Encode;
 
 pub const ParseError = error{
     OutOfMemory,

@@ -3,8 +3,6 @@
 const std = @import("../std.zig");
 const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
-const mem = std.mem;
-const assert = std.debug.assert;
 const wasm = std.wasm;
 const math = std.math;
 

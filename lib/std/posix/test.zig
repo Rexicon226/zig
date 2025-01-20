@@ -8,7 +8,6 @@ const io = std.io;
 const fs = std.fs;
 const mem = std.mem;
 const elf = std.elf;
-const File = std.fs.File;
 const Thread = std.Thread;
 const linux = std.os.linux;
 
@@ -19,7 +18,6 @@ const AtomicRmwOp = std.builtin.AtomicRmwOp;
 const AtomicOrder = std.builtin.AtomicOrder;
 const native_os = builtin.target.os.tag;
 const tmpDir = std.testing.tmpDir;
-const Dir = std.fs.Dir;
 const ArenaAllocator = std.heap.ArenaAllocator;
 
 // https://github.com/ziglang/zig/issues/20288

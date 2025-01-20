@@ -1,6 +1,5 @@
 const std = @import("../../std.zig");
 const math = std.math;
-const mem = std.mem;
 const Allocator = std.mem.Allocator;
 
 pub fn Vec2D(comptime T: type) type {

@@ -1,6 +1,5 @@
 const builtin = @import("builtin");
 const std = @import("../../std.zig");
-const maxInt = std.math.maxInt;
 const linux = std.os.linux;
 const SYS = linux.SYS;
 const socklen_t = linux.socklen_t;

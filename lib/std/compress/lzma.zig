@@ -1,6 +1,5 @@
 const std = @import("../std.zig");
 const math = std.math;
-const mem = std.mem;
 const Allocator = std.mem.Allocator;
 
 pub const decode = @import("lzma/decode.zig");

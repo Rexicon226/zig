@@ -5401,7 +5401,6 @@ const state_log = std.log.scoped(.link_state);
 const macho = std.macho;
 const math = std.math;
 const mem = std.mem;
-const meta = std.meta;
 
 const aarch64 = @import("../arch/aarch64/bits.zig");
 const bind = @import("MachO/dyld_info/bind.zig");
@@ -5414,12 +5413,10 @@ const link = @import("../link.zig");
 const load_commands = @import("MachO/load_commands.zig");
 const relocatable = @import("MachO/relocatable.zig");
 const tapi = @import("tapi.zig");
-const target_util = @import("../target.zig");
 const trace = @import("../tracy.zig").trace;
 const synthetic = @import("MachO/synthetic.zig");
 
 const Air = @import("../Air.zig");
-const Alignment = Atom.Alignment;
 const Allocator = mem.Allocator;
 const Archive = @import("MachO/Archive.zig");
 const AtomicBool = std.atomic.Value(bool);

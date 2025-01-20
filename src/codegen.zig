@@ -10,7 +10,6 @@ const target_util = @import("target.zig");
 const trace = @import("tracy.zig").trace;
 
 const Air = @import("Air.zig");
-const Allocator = mem.Allocator;
 const Compilation = @import("Compilation.zig");
 const ErrorMsg = Zcu.ErrorMsg;
 const InternPool = @import("InternPool.zig");
@@ -19,7 +18,6 @@ const Zcu = @import("Zcu.zig");
 
 const Type = @import("Type.zig");
 const Value = @import("Value.zig");
-const Zir = std.zig.Zir;
 const Alignment = InternPool.Alignment;
 const dev = @import("dev.zig");
 

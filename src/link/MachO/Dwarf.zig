@@ -394,7 +394,6 @@ const mem = std.mem;
 const std = @import("std");
 const Allocator = mem.Allocator;
 const Dwarf = @This();
-const File = @import("file.zig").File;
 const MachO = @import("../MachO.zig");
 const Object = @import("Object.zig");
 

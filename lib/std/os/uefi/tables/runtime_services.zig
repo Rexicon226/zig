@@ -2,7 +2,6 @@ const std = @import("std");
 const uefi = std.os.uefi;
 const Guid = uefi.Guid;
 const TableHeader = uefi.tables.TableHeader;
-const Time = uefi.Time;
 const TimeCapabilities = uefi.TimeCapabilities;
 const Status = uefi.Status;
 const MemoryDescriptor = uefi.tables.MemoryDescriptor;

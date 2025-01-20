@@ -25,7 +25,6 @@ const Cache = std.Build.Cache;
 const Path = Cache.Path;
 const assert = std.debug.assert;
 const fs = std.fs;
-const leb = std.leb;
 const log = std.log.scoped(.link);
 const mem = std.mem;
 

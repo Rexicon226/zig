@@ -444,7 +444,5 @@ const std = @import("std");
 const Atom = @import("Atom.zig");
 const File = @import("file.zig").File;
 const MachO = @import("../MachO.zig");
-const Nlist = Object.Nlist;
 const Object = @import("Object.zig");
 const Symbol = @This();
-const ZigGotSection = @import("synthetic.zig").ZigGotSection;

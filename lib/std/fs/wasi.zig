@@ -1,12 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const mem = std.mem;
-const math = std.math;
-const fs = std.fs;
-const assert = std.debug.assert;
 const Allocator = mem.Allocator;
 const wasi = std.os.wasi;
-const fd_t = wasi.fd_t;
 const prestat_t = wasi.prestat_t;
 
 pub const Preopens = struct {

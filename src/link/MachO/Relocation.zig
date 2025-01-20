@@ -165,8 +165,6 @@ pub const Type = enum {
 const Tag = enum { local, @"extern" };
 
 const assert = std.debug.assert;
-const macho = std.macho;
-const math = std.math;
 const std = @import("std");
 
 const Atom = @import("Atom.zig");

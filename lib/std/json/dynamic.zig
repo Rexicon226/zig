@@ -1,19 +1,14 @@
 const std = @import("std");
 const debug = std.debug;
-const ArenaAllocator = std.heap.ArenaAllocator;
 const ArrayList = std.ArrayList;
 const StringArrayHashMap = std.StringArrayHashMap;
 const Allocator = std.mem.Allocator;
 
-const StringifyOptions = @import("./stringify.zig").StringifyOptions;
 const stringify = @import("./stringify.zig").stringify;
 
 const ParseOptions = @import("./static.zig").ParseOptions;
 const ParseError = @import("./static.zig").ParseError;
 
-const JsonScanner = @import("./scanner.zig").Scanner;
-const AllocWhen = @import("./scanner.zig").AllocWhen;
-const Token = @import("./scanner.zig").Token;
 const isNumberFormattedLikeAnInteger = @import("./scanner.zig").isNumberFormattedLikeAnInteger;
 
 pub const ObjectMap = StringArrayHashMap(Value);

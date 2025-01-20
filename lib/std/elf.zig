@@ -1,7 +1,6 @@
 //! Executable and Linkable Format.
 
 const std = @import("std.zig");
-const math = std.math;
 const mem = std.mem;
 const assert = std.debug.assert;
 const native_endian = @import("builtin").target.cpu.arch.endian();

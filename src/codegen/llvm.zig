@@ -4,7 +4,6 @@ const assert = std.debug.assert;
 const Allocator = std.mem.Allocator;
 const log = std.log.scoped(.codegen);
 const math = std.math;
-const DW = std.dwarf;
 
 const Builder = @import("llvm/Builder.zig");
 const llvm = if (build_options.have_llvm)

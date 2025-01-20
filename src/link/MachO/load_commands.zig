@@ -4,7 +4,6 @@ const log = std.log.scoped(.link);
 const macho = std.macho;
 const mem = std.mem;
 
-const Allocator = mem.Allocator;
 const DebugSymbols = @import("DebugSymbols.zig");
 const Dylib = @import("Dylib.zig");
 const MachO = @import("../MachO.zig");

@@ -6,7 +6,6 @@ const std = @import("../std.zig");
 const builtin = @import("builtin");
 const ResetEvent = @This();
 
-const os = std.os;
 const assert = std.debug.assert;
 const testing = std.testing;
 const Futex = std.Thread.Futex;

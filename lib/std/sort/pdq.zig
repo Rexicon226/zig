@@ -2,7 +2,6 @@ const std = @import("../std.zig");
 const sort = std.sort;
 const mem = std.mem;
 const math = std.math;
-const testing = std.testing;
 
 /// Unstable in-place sort. n best case, n*log(n) worst case and average case.
 /// log(n) memory (no allocator required).

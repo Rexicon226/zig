@@ -1,5 +1,4 @@
 const std = @import("std");
-const mem = std.mem;
 const testing = std.testing;
 
 const yaml_mod = @import("../yaml.zig");

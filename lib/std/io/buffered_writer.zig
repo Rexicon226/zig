@@ -1,7 +1,6 @@
 const std = @import("../std.zig");
 
 const io = std.io;
-const mem = std.mem;
 
 pub fn BufferedWriter(comptime buffer_size: usize, comptime WriterType: type) type {
     return struct {

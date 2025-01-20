@@ -9,7 +9,6 @@
 //! - Ascon https://ascon.iaik.tugraz.at/files/asconv12-nist.pdf
 
 const std = @import("std");
-const mem = std.mem;
 const Self = @This();
 
 const Ascon = std.crypto.core.Ascon(.little);

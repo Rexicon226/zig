@@ -1,7 +1,6 @@
 const std = @import("../../std.zig");
 const builtin = @import("builtin");
 const mem = std.mem;
-const debug = std.debug;
 
 const has_vaes = builtin.cpu.arch == .x86_64 and std.Target.x86.featureSetHas(builtin.cpu.features, .vaes);
 const has_avx512f = builtin.cpu.arch == .x86_64 and builtin.zig_backend != .stage2_x86_64 and std.Target.x86.featureSetHas(builtin.cpu.features, .avx512f);

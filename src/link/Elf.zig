@@ -4895,8 +4895,6 @@ fn requiresThunks(self: Elf) bool {
 const max_number_of_object_segments = 9;
 const max_number_of_special_phdrs = 5;
 
-const default_entry_addr = 0x8000000;
-
 pub const base_tag: link.File.Tag = .elf;
 
 pub const ComdatGroup = struct {

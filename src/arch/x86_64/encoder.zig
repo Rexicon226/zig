@@ -6,7 +6,6 @@ const testing = std.testing;
 
 const bits = @import("bits.zig");
 const Encoding = @import("Encoding.zig");
-const FrameIndex = bits.FrameIndex;
 const Register = bits.Register;
 const Symbol = bits.Symbol;
 

@@ -13,8 +13,6 @@ const Allocator = mem.Allocator;
 const Target = std.Target;
 const process = std.process;
 const EnvMap = std.process.EnvMap;
-const File = fs.File;
-const Sha256 = std.crypto.hash.sha2.Sha256;
 const Build = @This();
 
 pub const Cache = @import("Build/Cache.zig");

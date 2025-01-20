@@ -3,7 +3,6 @@ const builtin = @import("builtin");
 const math = std.math;
 const Allocator = std.mem.Allocator;
 const mem = std.mem;
-const assert = std.debug.assert;
 
 pub fn SbrkAllocator(comptime sbrk: *const fn (n: usize) usize) type {
     return struct {

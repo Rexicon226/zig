@@ -1,8 +1,6 @@
 const std = @import("std");
-const mem = std.mem;
 const assert = std.debug.assert;
 const Allocator = std.mem.Allocator;
-const fs = std.fs;
 const Path = std.Build.Cache.Path;
 
 const C = @This();

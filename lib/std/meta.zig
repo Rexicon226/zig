@@ -1,5 +1,4 @@
 const std = @import("std.zig");
-const debug = std.debug;
 const mem = std.mem;
 const math = std.math;
 const testing = std.testing;
@@ -696,8 +695,6 @@ test activeTag {
     u = U{ .Float = 112.9876 };
     try testing.expect(activeTag(u) == UE.Float);
 }
-
-const TagPayloadType = TagPayload;
 
 pub fn TagPayloadByName(comptime U: type, comptime tag_name: []const u8) type {
     const info = @typeInfo(U).@"union";

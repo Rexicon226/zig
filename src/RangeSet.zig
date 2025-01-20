@@ -1,6 +1,5 @@
 const std = @import("std");
 const assert = std.debug.assert;
-const Order = std.math.Order;
 
 const InternPool = @import("InternPool.zig");
 const Type = @import("Type.zig");

@@ -1,7 +1,6 @@
 const std = @import("../std.zig");
 const assert = std.debug.assert;
 const hmac = std.crypto.auth.hmac;
-const mem = std.mem;
 
 /// HKDF-SHA256
 pub const HkdfSha256 = Hkdf(hmac.sha2.HmacSha256);

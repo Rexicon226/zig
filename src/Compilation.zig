@@ -33,7 +33,6 @@ const Zcu = @import("Zcu.zig");
 const Sema = @import("Sema.zig");
 const InternPool = @import("InternPool.zig");
 const Cache = std.Build.Cache;
-const c_codegen = @import("codegen/c.zig");
 const libtsan = @import("libtsan.zig");
 const Zir = std.zig.Zir;
 const Air = @import("Air.zig");

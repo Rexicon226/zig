@@ -1,12 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const assert = std.debug.assert;
-const io = std.io;
 const mem = std.mem;
-const meta = std.meta;
-const testing = std.testing;
-
-const Allocator = mem.Allocator;
 
 pub const cpu_type_t = c_int;
 pub const cpu_subtype_t = c_int;

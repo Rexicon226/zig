@@ -214,7 +214,6 @@ fn fail(emit: *Emit, comptime format: []const u8, args: anytype) Error {
 
 const link = @import("../../link.zig");
 const log = std.log.scoped(.emit);
-const mem = std.mem;
 const std = @import("std");
 
 const Emit = @This();

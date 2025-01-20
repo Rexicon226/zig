@@ -1020,7 +1020,6 @@ pub fn resolveCrtPaths(
 const LibCInstallation = @This();
 const std = @import("std");
 const builtin = @import("builtin");
-const Target = std.Target;
 const fs = std.fs;
 const Allocator = std.mem.Allocator;
 const Path = std.Build.Cache.Path;

@@ -1,5 +1,4 @@
 const std = @import("../../../std.zig");
-const mem = std.mem;
 
 pub const RangeDecoder = struct {
     range: u32,

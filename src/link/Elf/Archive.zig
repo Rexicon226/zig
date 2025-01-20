@@ -307,7 +307,6 @@ pub const ArState = struct {
 const std = @import("std");
 const assert = std.debug.assert;
 const elf = std.elf;
-const fs = std.fs;
 const log = std.log.scoped(.link);
 const mem = std.mem;
 const Path = std.Build.Cache.Path;

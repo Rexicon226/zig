@@ -1,5 +1,4 @@
 const std = @import("std");
-const testing = std.testing;
 const assert = std.debug.assert;
 const mem = std.mem;
 const math = std.math;
@@ -12,10 +11,8 @@ const Tag = Node.Tag;
 const common = @import("aro_translate_c");
 const ast = common.ast;
 const Error = common.Error;
-const MacroProcessingError = common.MacroProcessingError;
 const TypeError = common.TypeError;
 const TransError = common.TransError;
-const SymbolTable = common.SymbolTable;
 const AliasList = common.AliasList;
 const ResultUsed = common.ResultUsed;
 const Scope = common.ScopeExtra(Context, clang.QualType);

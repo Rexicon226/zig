@@ -1,6 +1,5 @@
 const std = @import("std");
 const crypto = std.crypto;
-const debug = std.debug;
 const mem = std.mem;
 const meta = std.meta;
 

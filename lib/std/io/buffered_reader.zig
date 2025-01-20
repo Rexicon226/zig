@@ -1,7 +1,5 @@
 const std = @import("../std.zig");
 const io = std.io;
-const mem = std.mem;
-const assert = std.debug.assert;
 const testing = std.testing;
 
 pub fn BufferedReader(comptime buffer_size: usize, comptime ReaderType: type) type {

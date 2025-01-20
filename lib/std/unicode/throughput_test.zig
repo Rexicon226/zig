@@ -1,6 +1,5 @@
 const std = @import("std");
 const time = std.time;
-const unicode = std.unicode;
 
 const Timer = time.Timer;
 

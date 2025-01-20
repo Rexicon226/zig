@@ -2,8 +2,6 @@ const std = @import("std");
 const builtin = @import("builtin");
 const wasi = std.os.wasi;
 const linux = std.os.linux;
-const iovec = std.posix.iovec;
-const iovec_const = std.posix.iovec_const;
 const c = std.c;
 
 // TODO: go through this file and delete all the bits that are identical to linux because they can

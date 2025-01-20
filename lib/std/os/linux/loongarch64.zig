@@ -2,9 +2,6 @@ const builtin = @import("builtin");
 const std = @import("../../std.zig");
 const linux = std.os.linux;
 const SYS = linux.SYS;
-const iovec = std.os.iovec;
-const uid_t = linux.uid_t;
-const gid_t = linux.gid_t;
 const stack_t = linux.stack_t;
 const sigset_t = linux.sigset_t;
 

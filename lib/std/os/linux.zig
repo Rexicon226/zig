@@ -11,7 +11,6 @@ const assert = std.debug.assert;
 const maxInt = std.math.maxInt;
 const elf = std.elf;
 const vdso = @import("linux/vdso.zig");
-const dl = @import("../dynamic_library.zig");
 const native_arch = builtin.cpu.arch;
 const native_abi = builtin.abi;
 const native_endian = native_arch.endian();

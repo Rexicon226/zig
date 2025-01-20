@@ -1,7 +1,4 @@
 const std = @import("std");
-const mem = std.mem;
-const Tokenizer = std.zig.Tokenizer;
-const io = std.io;
 const fmtIntSizeBin = std.fmt.fmtIntSizeBin;
 
 const source = @embedFile("../os.zig");

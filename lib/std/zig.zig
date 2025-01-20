@@ -353,7 +353,6 @@ pub fn serializeCpuAlloc(ally: Allocator, cpu: std.Target.Cpu) Allocator.Error![
 
 const std = @import("std.zig");
 const tokenizer = @import("zig/tokenizer.zig");
-const assert = std.debug.assert;
 const Allocator = std.mem.Allocator;
 
 /// Return a Formatter for a Zig identifier, escaping it with `@""` syntax if needed.

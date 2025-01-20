@@ -15,7 +15,6 @@ const spec = @import("spec.zig");
 const Word = spec.Word;
 const IdRef = spec.IdRef;
 const IdResult = spec.IdResult;
-const IdResultType = spec.IdResultType;
 
 const Section = @import("Section.zig");
 

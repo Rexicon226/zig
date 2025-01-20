@@ -12,7 +12,6 @@
 const std = @import("std");
 const mem = std.mem;
 const elf = std.elf;
-const math = std.math;
 const assert = std.debug.assert;
 const native_arch = @import("builtin").cpu.arch;
 const linux = std.os.linux;

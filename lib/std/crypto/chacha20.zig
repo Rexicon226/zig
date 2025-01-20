@@ -7,7 +7,6 @@ const math = std.math;
 const mem = std.mem;
 const assert = std.debug.assert;
 const testing = std.testing;
-const maxInt = math.maxInt;
 const Poly1305 = crypto.onetimeauth.Poly1305;
 const AuthenticationError = crypto.errors.AuthenticationError;
 

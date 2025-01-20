@@ -5,7 +5,6 @@ const fs = std.fs;
 const macho = std.macho;
 const math = std.math;
 const mem = std.mem;
-const testing = std.testing;
 
 const CheckObject = @This();
 

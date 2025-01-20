@@ -2,7 +2,6 @@ const std = @import("std");
 const mem = std.mem;
 const Allocator = mem.Allocator;
 const Target = std.Target;
-const Version = std.SemanticVersion;
 
 pub const macos = @import("darwin/macos.zig");
 

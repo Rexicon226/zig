@@ -5,7 +5,6 @@
 //! Note: Above mentioned document is not an official specification, therefore called a convention.
 
 const std = @import("std");
-const Target = std.Target;
 const assert = std.debug.assert;
 
 const Type = @import("../../Type.zig");

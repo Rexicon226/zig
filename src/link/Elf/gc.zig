@@ -205,7 +205,6 @@ const elf = std.elf;
 const gc_track_live_log = std.log.scoped(.gc_track_live);
 const mem = std.mem;
 
-const Allocator = mem.Allocator;
 const Atom = @import("Atom.zig");
 const Elf = @import("../Elf.zig");
 const File = @import("file.zig").File;

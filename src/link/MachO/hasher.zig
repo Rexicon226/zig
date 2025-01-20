@@ -65,7 +65,6 @@ pub fn ParallelHasher(comptime Hasher: type) type {
     };
 }
 
-const assert = std.debug.assert;
 const fs = std.fs;
 const mem = std.mem;
 const std = @import("std");

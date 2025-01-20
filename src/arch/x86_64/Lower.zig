@@ -784,4 +784,3 @@ const Mnemonic = Instruction.Mnemonic;
 const Zcu = @import("../../Zcu.zig");
 const Operand = Instruction.Operand;
 const Prefix = Instruction.Prefix;
-const Register = bits.Register;

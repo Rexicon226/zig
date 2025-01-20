@@ -2,7 +2,6 @@
 ///! binary format, as specified by:
 ///! https://webassembly.github.io/spec/core/
 const std = @import("std.zig");
-const testing = std.testing;
 
 /// Wasm instruction opcodes
 ///

@@ -4,7 +4,6 @@
 //! - Fast-key-erasure random-number generators https://blog.cr.yp.to/20170723-random.html
 
 const std = @import("std");
-const mem = std.mem;
 const Self = @This();
 
 const Cipher = std.crypto.stream.chacha.ChaCha8IETF;

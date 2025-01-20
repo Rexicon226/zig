@@ -1,8 +1,6 @@
 const Disassembler = @This();
 
 const std = @import("std");
-const assert = std.debug.assert;
-const math = std.math;
 
 const bits = @import("bits.zig");
 const encoder = @import("encoder.zig");

@@ -2,7 +2,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
 const mem = std.mem;
-const sort = std.sort;
 const testing = std.testing;
 
 const consts = @import("consts.zig").huffman;

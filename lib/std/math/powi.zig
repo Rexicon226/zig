@@ -5,7 +5,6 @@
 
 const std = @import("../std.zig");
 const math = std.math;
-const assert = std.debug.assert;
 const testing = std.testing;
 
 /// Returns the power of x raised by the integer y (x^y).

@@ -198,7 +198,5 @@ const Register = bits.Register;
 const CSR = bits.CSR;
 const Immediate = bits.Immediate;
 const Memory = bits.Memory;
-const FrameIndex = bits.FrameIndex;
-const FrameAddr = @import("CodeGen.zig").FrameAddr;
 const IntegerBitSet = std.bit_set.IntegerBitSet;
 const Mnemonic = @import("mnem.zig").Mnemonic;

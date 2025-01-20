@@ -2,8 +2,6 @@ const std = @import("std");
 const common = @import("../common.zig");
 const crypto = std.crypto;
 const debug = std.debug;
-const math = std.math;
-const mem = std.mem;
 
 const Field = common.Field;
 

@@ -17,7 +17,6 @@ const Zcu = @import("../Zcu.zig");
 const InternPool = @import("../InternPool.zig");
 const Compilation = @import("../Compilation.zig");
 const link = @import("../link.zig");
-const trace = @import("../tracy.zig").trace;
 const build_options = @import("build_options");
 const Air = @import("../Air.zig");
 const Liveness = @import("../Liveness.zig");

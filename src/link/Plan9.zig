@@ -15,7 +15,6 @@ const Air = @import("../Air.zig");
 const Liveness = @import("../Liveness.zig");
 const Type = @import("../Type.zig");
 const Value = @import("../Value.zig");
-const AnalUnit = InternPool.AnalUnit;
 
 const std = @import("std");
 const builtin = @import("builtin");

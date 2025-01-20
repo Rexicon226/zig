@@ -22,7 +22,6 @@ const Pdb = std.debug.Pdb;
 const File = std.fs.File;
 const math = std.math;
 const testing = std.testing;
-const StackIterator = std.debug.StackIterator;
 const regBytes = Dwarf.abi.regBytes;
 const regValueNative = Dwarf.abi.regValueNative;
 

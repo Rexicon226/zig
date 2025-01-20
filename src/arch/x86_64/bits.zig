@@ -2,9 +2,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const expect = std.testing.expect;
 
-const Allocator = std.mem.Allocator;
-const ArrayList = std.ArrayList;
-
 /// EFLAGS condition codes
 pub const Condition = enum(u5) {
     /// above

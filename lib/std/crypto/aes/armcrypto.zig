@@ -1,6 +1,5 @@
 const std = @import("../../std.zig");
 const mem = std.mem;
-const debug = std.debug;
 
 /// A single AES block.
 pub const Block = struct {

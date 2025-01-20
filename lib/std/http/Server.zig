@@ -1141,7 +1141,6 @@ const std = @import("../std.zig");
 const http = std.http;
 const mem = std.mem;
 const net = std.net;
-const Uri = std.Uri;
 const assert = std.debug.assert;
 const testing = std.testing;
 

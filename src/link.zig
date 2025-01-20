@@ -14,7 +14,6 @@ const Cache = std.Build.Cache;
 const Path = std.Build.Cache.Path;
 const Directory = std.Build.Cache.Directory;
 const Compilation = @import("Compilation.zig");
-const LibCInstallation = std.zig.LibCInstallation;
 const Liveness = @import("Liveness.zig");
 const Zcu = @import("Zcu.zig");
 const InternPool = @import("InternPool.zig");

@@ -1,11 +1,9 @@
 const std = @import("../std.zig");
-const math = std.math;
 const Random = std.Random;
 const DefaultPrng = Random.DefaultPrng;
 const SplitMix64 = Random.SplitMix64;
 const DefaultCsprng = Random.DefaultCsprng;
 const expect = std.testing.expect;
-const expectEqual = std.testing.expectEqual;
 
 const SequentialPrng = struct {
     const Self = @This();

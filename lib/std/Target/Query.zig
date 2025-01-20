@@ -601,7 +601,6 @@ fn versionEqualOpt(a: ?SemanticVersion, b: ?SemanticVersion) bool {
 const Query = @This();
 const std = @import("../std.zig");
 const builtin = @import("builtin");
-const assert = std.debug.assert;
 const Target = std.Target;
 const mem = std.mem;
 const Allocator = std.mem.Allocator;

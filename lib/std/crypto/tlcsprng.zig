@@ -6,7 +6,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const mem = std.mem;
-const native_os = builtin.os.tag;
 const posix = std.posix;
 
 /// We use this as a layer of indirection because global const pointers cannot

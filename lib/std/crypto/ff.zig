@@ -9,7 +9,6 @@ const std = @import("std");
 const builtin = @import("builtin");
 const crypto = std.crypto;
 const math = std.math;
-const mem = std.mem;
 const meta = std.meta;
 const testing = std.testing;
 const assert = std.debug.assert;

@@ -5,7 +5,6 @@ const builtin = @import("builtin");
 const root = @import("root");
 const mem = std.mem;
 const base64 = std.base64;
-const crypto = std.crypto;
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
 const native_os = builtin.os.tag;

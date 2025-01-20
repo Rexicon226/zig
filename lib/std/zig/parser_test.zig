@@ -6314,7 +6314,6 @@ const std = @import("std");
 const mem = std.mem;
 const print = std.debug.print;
 const io = std.io;
-const maxInt = std.math.maxInt;
 
 var fixed_buffer_mem: [100 * 1024]u8 = undefined;
 

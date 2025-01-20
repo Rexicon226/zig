@@ -55,7 +55,6 @@ pub fn writeBranchImm(disp: i28, code: *[4]u8) void {
     mem.writeInt(u32, code, inst.toU32(), .little);
 }
 
-const assert = std.debug.assert;
 const bits = @import("../arch/aarch64/bits.zig");
 const builtin = @import("builtin");
 const math = std.math;

@@ -1,8 +1,6 @@
 const std = @import("std");
 const Step = std.Build.Step;
 const LazyPath = std.Build.LazyPath;
-const fs = std.fs;
-const mem = std.mem;
 
 const TranslateC = @This();
 
