@@ -901,7 +901,7 @@ pub fn toFloat(val: Value, comptime T: type, zcu: *Zcu) T {
             .big_int => |big_int| big_int.toFloat(T),
             inline .u64, .i64 => |x| {
                 if (T == f80) {
-                    @panic("TODO we can't lower this properly on non-x86 llvm backend yet");
+                    @compileError("TODO we can't lower this properly on non-x86 llvm backend yet");
                 }
                 return @floatFromInt(x);
             },
