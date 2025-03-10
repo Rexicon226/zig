@@ -144,9 +144,7 @@ pub fn __pdep_u64(source: u64, mask: u64) callconv(.c) u64 {
     return pdep_uX(u64, source, mask);
 }
 
-pub fn __pdep_u128(source_lo: u64, source_hi: u64, mask_lo: u64, mask_hi: u64) callconv(.c) u128 {
-    const source = (@as(u128, source_hi) << 64) | @as(u128, source_lo);
-    const mask = (@as(u128, mask_hi) << 64) | @as(u128, mask_lo);
+pub fn __pdep_u128(source: u128, mask: u128) callconv(.c) u128 {
     return pdep_uX(u128, source, mask);
 }
 
@@ -174,8 +172,6 @@ pub fn __pext_u64(source: u64, mask: u64) callconv(.c) u64 {
     return pext_uX(u64, source, mask);
 }
 
-pub fn __pext_u128(source_lo: u64, source_hi: u64, mask_lo: u64, mask_hi: u64) callconv(.c) u128 {
-    const source = (@as(u128, source_hi) << 64) | @as(u128, source_lo);
-    const mask = (@as(u128, mask_hi) << 64) | @as(u128, mask_lo);
+pub fn __pext_u128(source: u128, mask: u128) callconv(.c) u128 {
     return pext_uX(u128, source, mask);
 }
