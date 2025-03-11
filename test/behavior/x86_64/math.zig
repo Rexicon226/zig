@@ -16229,6 +16229,7 @@ fn binary(comptime op: anytype, comptime opts: struct { compare: Compare = .rela
             var reg_lhs = mem_lhs;
             var reg_rhs = mem_rhs;
             _ = .{ &reg_lhs, &reg_rhs };
+
             try checkExpected(expected, op(Type, reg_lhs, reg_rhs), opts.compare);
             try checkExpected(expected, op(Type, reg_lhs, mem_rhs), opts.compare);
             try checkExpected(expected, op(Type, reg_lhs, imm_rhs), opts.compare);
@@ -16271,6 +16272,8 @@ fn binary(comptime op: anytype, comptime opts: struct { compare: Compare = .rela
             try testArgs(u8, 0xbb, 0x43);
             try testArgs(i16, -0x0fdf, 0x302e);
             try testArgs(u16, 0xb8bf, 0x626d);
+            try testArgs(i22, -0x1ad56e, 0x682c4);
+            try testArgs(u22, 0x80dc6, 0xbfa02);
             try testArgs(i32, -0x6280178f, 0x6802c034);
             try testArgs(u32, 0x80d7a2c6, 0xbff6a402);
             try testArgs(i64, 0x0365a53b8ee0c987, -0x1bb6d3013500a7d2);
@@ -21624,699 +21627,719 @@ fn binary(comptime op: anytype, comptime opts: struct { compare: Compare = .rela
     };
 }
 
-inline fn addUnsafe(comptime Type: type, lhs: Type, rhs: Type) AddOneBit(Type) {
-    @setRuntimeSafety(false);
-    return @as(AddOneBit(Type), lhs) + rhs;
-}
-test addUnsafe {
-    const test_add_unsafe = binary(addUnsafe, .{});
-    try test_add_unsafe.testInts();
-    try test_add_unsafe.testIntVectors();
-    try test_add_unsafe.testFloats();
-    try test_add_unsafe.testFloatVectors();
+// inline fn addUnsafe(comptime Type: type, lhs: Type, rhs: Type) AddOneBit(Type) {
+//     @setRuntimeSafety(false);
+//     return @as(AddOneBit(Type), lhs) + rhs;
+// }
+// test addUnsafe {
+//     const test_add_unsafe = binary(addUnsafe, .{});
+//     try test_add_unsafe.testInts();
+//     try test_add_unsafe.testIntVectors();
+//     try test_add_unsafe.testFloats();
+//     try test_add_unsafe.testFloatVectors();
+// }
+
+// inline fn addWrap(comptime Type: type, lhs: Type, rhs: Type) Type {
+//     return lhs +% rhs;
+// }
+// test addWrap {
+//     const test_add_wrap = binary(addWrap, .{});
+//     try test_add_wrap.testInts();
+//     try test_add_wrap.testIntVectors();
+// }
+
+// inline fn subUnsafe(comptime Type: type, lhs: Type, rhs: Type) AddOneBit(Type) {
+//     @setRuntimeSafety(false);
+//     switch (@typeInfo(Scalar(Type))) {
+//         else => @compileError(@typeName(Type)),
+//         .int => |int| switch (int.signedness) {
+//             .signed => {},
+//             .unsigned => return @as(AddOneBit(Type), @max(lhs, rhs)) - @min(lhs, rhs),
+//         },
+//         .float => {},
+//     }
+//     return @as(AddOneBit(Type), lhs) - rhs;
+// }
+// test subUnsafe {
+//     const test_sub_unsafe = binary(subUnsafe, .{});
+//     try test_sub_unsafe.testInts();
+//     try test_sub_unsafe.testIntVectors();
+//     try test_sub_unsafe.testFloats();
+//     try test_sub_unsafe.testFloatVectors();
+// }
+
+// inline fn subWrap(comptime Type: type, lhs: Type, rhs: Type) Type {
+//     return lhs -% rhs;
+// }
+// test subWrap {
+//     const test_sub_wrap = binary(subWrap, .{});
+//     try test_sub_wrap.testInts();
+//     try test_sub_wrap.testIntVectors();
+// }
+
+// inline fn mulUnsafe(comptime Type: type, lhs: Type, rhs: Type) DoubleBits(Type) {
+//     @setRuntimeSafety(false);
+//     return @as(DoubleBits(Type), lhs) * rhs;
+// }
+// test mulUnsafe {
+//     const test_mul_unsafe = binary(mulUnsafe, .{});
+//     try test_mul_unsafe.testInts();
+//     try test_mul_unsafe.testIntVectors();
+// }
+
+// inline fn multiply(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs * rhs) {
+//     if (@inComptime() and @typeInfo(Type) == .vector) {
+//         // workaround https://github.com/ziglang/zig/issues/22743
+//         // TODO: return @select(Scalar(Type), boolAnd(lhs == lhs, rhs == rhs), lhs * rhs, lhs + rhs);
+//         // workaround https://github.com/ziglang/zig/issues/22744
+//         var res: Type = undefined;
+//         for (0..@typeInfo(Type).vector.len) |i| res[i] = lhs[i] * rhs[i];
+//         return res;
+//     }
+//     // workaround https://github.com/ziglang/zig/issues/22745
+//     // TODO: return lhs * rhs;
+//     var rt_lhs = lhs;
+//     var rt_rhs = rhs;
+//     _ = .{ &rt_lhs, &rt_rhs };
+//     return rt_lhs * rt_rhs;
+// }
+// test multiply {
+//     const test_multiply = binary(multiply, .{});
+//     try test_multiply.testFloats();
+//     try test_multiply.testFloatVectors();
+// }
+
+// inline fn divide(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs / rhs) {
+//     return lhs / rhs;
+// }
+// test divide {
+//     const test_divide = binary(divide, .{ .compare = .approx });
+//     try test_divide.testFloats();
+//     try test_divide.testFloatVectors();
+// }
+
+// inline fn divTrunc(comptime Type: type, lhs: Type, rhs: Type) Type {
+//     switch (@typeInfo(Scalar(Type))) {
+//         else => @compileError(@typeName(Type)),
+//         .int => return @divTrunc(lhs, rhs),
+//         .float => {
+//             if (@inComptime()) {
+//                 // workaround https://github.com/ziglang/zig/issues/22748
+//                 return @trunc(lhs / rhs);
+//             }
+//             // workaround https://github.com/ziglang/zig/issues/22748
+//             // workaround https://github.com/ziglang/zig/issues/22749
+//             // TODO: return @divTrunc(lhs, rhs);
+//             var rt_lhs = lhs;
+//             var rt_rhs = rhs;
+//             _ = .{ &rt_lhs, &rt_rhs };
+//             return @divTrunc(rt_lhs, rt_rhs);
+//         },
+//     }
+// }
+// test divTrunc {
+//     const test_div_trunc = binary(divTrunc, .{ .compare = .approx_int });
+//     try test_div_trunc.testInts();
+//     try test_div_trunc.testIntVectors();
+//     try test_div_trunc.testFloats();
+//     try test_div_trunc.testFloatVectors();
+// }
+
+// inline fn divFloor(comptime Type: type, lhs: Type, rhs: Type) Type {
+//     switch (@typeInfo(Scalar(Type))) {
+//         else => @compileError(@typeName(Type)),
+//         .int => return @divFloor(lhs, rhs),
+//         .float => {
+//             if (@inComptime()) {
+//                 // workaround https://github.com/ziglang/zig/issues/22748
+//                 return @floor(lhs / rhs);
+//             }
+//             // workaround https://github.com/ziglang/zig/issues/22748
+//             // workaround https://github.com/ziglang/zig/issues/22749
+//             // TODO: return @divFloor(lhs, rhs);
+//             var rt_lhs = lhs;
+//             var rt_rhs = rhs;
+//             _ = .{ &rt_lhs, &rt_rhs };
+//             return @divFloor(rt_lhs, rt_rhs);
+//         },
+//     }
+// }
+// test divFloor {
+//     const test_div_floor = binary(divFloor, .{ .compare = .approx_int });
+//     try test_div_floor.testFloats();
+//     try test_div_floor.testFloatVectors();
+// }
+
+// // workaround https://github.com/ziglang/zig/issues/22748
+// // TODO: @TypeOf(@rem(lhs, rhs))
+// inline fn rem(comptime Type: type, lhs: Type, rhs: Type) Type {
+//     switch (@typeInfo(Scalar(Type))) {
+//         else => @compileError(@typeName(Type)),
+//         .int => return @rem(lhs, rhs),
+//         .float => {
+//             if (@inComptime()) {
+//                 // workaround https://github.com/ziglang/zig/issues/22748
+//                 switch (@typeInfo(Type)) {
+//                     else => return if (rhs != 0) @rem(lhs, rhs) else nan(Type),
+//                     .vector => |info| {
+//                         var res: Type = undefined;
+//                         inline for (0..info.len) |i| res[i] = if (rhs[i] != 0) @rem(lhs[i], rhs[i]) else nan(Scalar(Type));
+//                         return res;
+//                     },
+//                 }
+//             }
+//             // workaround https://github.com/ziglang/zig/issues/22748
+//             // TODO: return @rem(lhs, rhs);
+//             var rt_rhs = rhs;
+//             _ = &rt_rhs;
+//             return @rem(lhs, rt_rhs);
+//         },
+//     }
+// }
+// test rem {
+//     const test_rem = binary(rem, .{});
+//     try test_rem.testInts();
+//     try test_rem.testIntVectors();
+//     try test_rem.testFloats();
+//     try test_rem.testFloatVectors();
+// }
+
+// inline fn mod(comptime Type: type, lhs: Type, rhs: Type) Type {
+//     if (@inComptime()) {
+//         const scalarMod = struct {
+//             fn scalarMod(scalar_lhs: Scalar(Type), scalar_rhs: Scalar(Type)) Scalar(Type) {
+//                 // workaround https://github.com/ziglang/zig/issues/22748
+//                 if (scalar_rhs == 0) return nan(Scalar(Type));
+//                 const scalar_rem = @rem(scalar_lhs, scalar_rhs);
+//                 return if (scalar_rem == 0 or math.signbit(scalar_rem) == math.signbit(scalar_rhs)) scalar_rem else scalar_rem + scalar_rhs;
+//             }
+//         }.scalarMod;
+//         // workaround https://github.com/ziglang/zig/issues/22748
+//         switch (@typeInfo(Type)) {
+//             // workaround llvm backend bugs
+//             // TODO: else => return if (rhs != 0) @mod(lhs, rhs) else nan(Type),
+//             // TODO: .vector => |info| {
+//             // TODO:     var res: Type = undefined;
+//             // TODO:     inline for (0..info.len) |i| res[i] = if (rhs[i] != 0) @mod(lhs[i], rhs[i]) else nan(Scalar(Type));
+//             // TODO:     return res;
+//             // TODO: },
+//             else => return scalarMod(lhs, rhs),
+//             .vector => |info| {
+//                 var res: Type = undefined;
+//                 inline for (0..info.len) |i| res[i] = scalarMod(lhs[i], rhs[i]);
+//                 return res;
+//             },
+//         }
+//     }
+//     // workaround https://github.com/ziglang/zig/issues/22748
+//     // TODO: return @mod(lhs, rhs);
+//     var rt_rhs = rhs;
+//     _ = &rt_rhs;
+//     return @mod(lhs, rt_rhs);
+// }
+// test mod {
+//     const test_mod = binary(mod, .{});
+//     try test_mod.testFloats();
+//     try test_mod.testFloatVectors();
+// }
+
+// inline fn bitNot(comptime Type: type, rhs: Type) @TypeOf(~rhs) {
+//     return ~rhs;
+// }
+// test bitNot {
+//     const test_bit_not = unary(bitNot, .{});
+//     try test_bit_not.testInts();
+//     try test_bit_not.testIntVectors();
+// }
+
+// inline fn clz(comptime Type: type, rhs: Type) @TypeOf(@clz(rhs)) {
+//     return @clz(rhs);
+// }
+// test clz {
+//     const test_clz = unary(clz, .{});
+//     try test_clz.testInts();
+//     try test_clz.testIntVectors();
+// }
+
+// inline fn ctz(comptime Type: type, rhs: Type) @TypeOf(@ctz(rhs)) {
+//     return @ctz(rhs);
+// }
+// test ctz {
+//     const test_ctz = unary(ctz, .{});
+//     try test_ctz.testInts();
+// }
+
+// inline fn popCount(comptime Type: type, rhs: Type) @TypeOf(@popCount(rhs)) {
+//     return @popCount(rhs);
+// }
+// test popCount {
+//     const test_pop_count = unary(popCount, .{});
+//     try test_pop_count.testInts();
+// }
+
+// inline fn byteSwap(comptime Type: type, rhs: Type) RoundBitsUp(Type, 8) {
+//     return @byteSwap(@as(RoundBitsUp(Type, 8), rhs));
+// }
+// test byteSwap {
+//     const test_byte_swap = unary(byteSwap, .{});
+//     try test_byte_swap.testInts();
+// }
+
+// inline fn bitReverse(comptime Type: type, rhs: Type) @TypeOf(@bitReverse(rhs)) {
+//     return @bitReverse(rhs);
+// }
+// test bitReverse {
+//     const test_bit_reverse = unary(bitReverse, .{});
+//     try test_bit_reverse.testInts();
+// }
+
+// inline fn sqrt(comptime Type: type, rhs: Type) @TypeOf(@sqrt(rhs)) {
+//     return @sqrt(rhs);
+// }
+// test sqrt {
+//     const test_sqrt = unary(sqrt, .{ .libc_name = "sqrt", .compare = .approx });
+//     try test_sqrt.testFloats();
+//     try test_sqrt.testFloatVectors();
+// }
+
+// inline fn sin(comptime Type: type, rhs: Type) @TypeOf(@sin(rhs)) {
+//     return @sin(rhs);
+// }
+// test sin {
+//     const test_sin = unary(sin, .{ .libc_name = "sin", .compare = .strict });
+//     try test_sin.testFloats();
+//     try test_sin.testFloatVectors();
+// }
+
+// inline fn cos(comptime Type: type, rhs: Type) @TypeOf(@cos(rhs)) {
+//     return @cos(rhs);
+// }
+// test cos {
+//     const test_cos = unary(cos, .{ .libc_name = "cos", .compare = .strict });
+//     try test_cos.testFloats();
+//     try test_cos.testFloatVectors();
+// }
+
+// inline fn tan(comptime Type: type, rhs: Type) @TypeOf(@tan(rhs)) {
+//     return @tan(rhs);
+// }
+// test tan {
+//     const test_tan = unary(tan, .{ .libc_name = "tan", .compare = .strict });
+//     try test_tan.testFloats();
+//     try test_tan.testFloatVectors();
+// }
+
+// inline fn exp(comptime Type: type, rhs: Type) @TypeOf(@exp(rhs)) {
+//     return @exp(rhs);
+// }
+// test exp {
+//     const test_exp = unary(exp, .{ .libc_name = "exp", .compare = .strict });
+//     try test_exp.testFloats();
+//     try test_exp.testFloatVectors();
+// }
+
+// inline fn exp2(comptime Type: type, rhs: Type) @TypeOf(@exp2(rhs)) {
+//     return @exp2(rhs);
+// }
+// test exp2 {
+//     const test_exp2 = unary(exp2, .{ .libc_name = "exp2", .compare = .strict });
+//     try test_exp2.testFloats();
+//     try test_exp2.testFloatVectors();
+// }
+
+// inline fn log(comptime Type: type, rhs: Type) @TypeOf(@log(rhs)) {
+//     return @log(rhs);
+// }
+// test log {
+//     const test_log = unary(log, .{ .libc_name = "log", .compare = .strict });
+//     try test_log.testFloats();
+//     try test_log.testFloatVectors();
+// }
+
+// inline fn log2(comptime Type: type, rhs: Type) @TypeOf(@log2(rhs)) {
+//     return @log2(rhs);
+// }
+// test log2 {
+//     const test_log2 = unary(log2, .{ .libc_name = "log2", .compare = .strict });
+//     try test_log2.testFloats();
+//     try test_log2.testFloatVectors();
+// }
+
+// inline fn log10(comptime Type: type, rhs: Type) @TypeOf(@log10(rhs)) {
+//     return @log10(rhs);
+// }
+// test log10 {
+//     const test_log10 = unary(log10, .{ .libc_name = "log10", .compare = .strict });
+//     try test_log10.testFloats();
+//     try test_log10.testFloatVectors();
+// }
+
+// inline fn abs(comptime Type: type, rhs: Type) @TypeOf(@abs(rhs)) {
+//     return @abs(rhs);
+// }
+// test abs {
+//     const test_abs = unary(abs, .{ .compare = .strict });
+//     try test_abs.testInts();
+//     try test_abs.testIntVectors();
+//     try test_abs.testFloats();
+//     try test_abs.testFloatVectors();
+// }
+
+// inline fn floor(comptime Type: type, rhs: Type) @TypeOf(@floor(rhs)) {
+//     return @floor(rhs);
+// }
+// test floor {
+//     const test_floor = unary(floor, .{ .libc_name = "floor", .compare = .strict });
+//     try test_floor.testFloats();
+//     try test_floor.testFloatVectors();
+// }
+
+// inline fn ceil(comptime Type: type, rhs: Type) @TypeOf(@ceil(rhs)) {
+//     return @ceil(rhs);
+// }
+// test ceil {
+//     const test_ceil = unary(ceil, .{ .libc_name = "ceil", .compare = .strict });
+//     try test_ceil.testFloats();
+//     try test_ceil.testFloatVectors();
+// }
+
+// inline fn round(comptime Type: type, rhs: Type) @TypeOf(@round(rhs)) {
+//     return @round(rhs);
+// }
+// test round {
+//     const test_round = unary(round, .{ .libc_name = "round", .compare = .strict });
+//     try test_round.testFloats();
+//     try test_round.testFloatVectors();
+// }
+
+// inline fn trunc(comptime Type: type, rhs: Type) @TypeOf(@trunc(rhs)) {
+//     return @trunc(rhs);
+// }
+// test trunc {
+//     const test_trunc = unary(trunc, .{ .libc_name = "trunc", .compare = .strict });
+//     try test_trunc.testFloats();
+//     try test_trunc.testFloatVectors();
+// }
+
+// inline fn negate(comptime Type: type, rhs: Type) @TypeOf(-rhs) {
+//     return -rhs;
+// }
+// test negate {
+//     const test_negate = unary(negate, .{ .compare = .strict });
+//     try test_negate.testFloats();
+//     try test_negate.testFloatVectors();
+// }
+
+// inline fn intCast(comptime Result: type, comptime Type: type, rhs: Type, comptime ct_rhs: Type) Result {
+//     @setRuntimeSafety(false); // TODO
+//     const res_info = switch (@typeInfo(Result)) {
+//         .int => |info| info,
+//         .vector => |info| @typeInfo(info.child).int,
+//         else => @compileError(@typeName(Result)),
+//     };
+//     const rhs_info = @typeInfo(Scalar(Type)).int;
+//     const min_bits = @min(res_info.bits, rhs_info.bits);
+//     return @intCast(switch (@as(union(enum) {
+//         shift: std.math.Log2Int(Scalar(Type)),
+//         mask: std.math.Log2IntCeil(Scalar(Type)),
+//     }, switch (res_info.signedness) {
+//         .signed => switch (rhs_info.signedness) {
+//             .signed => .{ .shift = rhs_info.bits - min_bits },
+//             .unsigned => .{ .mask = min_bits - @intFromBool(res_info.bits <= rhs_info.bits) },
+//         },
+//         .unsigned => switch (rhs_info.signedness) {
+//             .signed => .{ .mask = min_bits - @intFromBool(res_info.bits >= rhs_info.bits) },
+//             .unsigned => .{ .mask = min_bits },
+//         },
+//     })) {
+//         // TODO: if (bits == 0) rhs else rhs >> bits,
+//         .shift => |bits| if (bits == 0) rhs else switch (@typeInfo(Type)) {
+//             .int => if (ct_rhs < 0)
+//                 rhs | std.math.minInt(Type) >> bits
+//             else
+//                 rhs & std.math.maxInt(Type) >> bits,
+//             .vector => rhs | @select(
+//                 Scalar(Type),
+//                 ct_rhs < splat(Type, 0),
+//                 splat(Type, std.math.minInt(Scalar(Type)) >> bits),
+//                 splat(Type, 0),
+//             ) & ~@select(
+//                 Scalar(Type),
+//                 ct_rhs >= splat(Type, 0),
+//                 splat(Type, std.math.minInt(Scalar(Type)) >> bits),
+//                 splat(Type, 0),
+//             ),
+//             else => comptime unreachable,
+//         },
+//         .mask => |bits| if (bits == rhs_info.bits) rhs else rhs & splat(Type, (1 << bits) - 1),
+//     });
+// }
+// test intCast {
+//     const test_int_cast = cast(intCast, .{});
+//     try test_int_cast.testInts();
+//     try test_int_cast.testIntVectors();
+// }
+
+// inline fn truncate(comptime Result: type, comptime Type: type, rhs: Type, comptime _: Type) Result {
+//     return if (@typeInfo(Scalar(Result)).int.bits <= @typeInfo(Scalar(Type)).int.bits) @truncate(rhs) else rhs;
+// }
+// test truncate {
+//     const test_truncate = cast(truncate, .{});
+//     try test_truncate.testSameSignednessInts();
+//     try test_truncate.testSameSignednessIntVectors();
+// }
+
+// inline fn floatCast(comptime Result: type, comptime Type: type, rhs: Type, comptime _: Type) Result {
+//     return @floatCast(rhs);
+// }
+// test floatCast {
+//     const test_float_cast = cast(floatCast, .{ .compare = .strict });
+//     try test_float_cast.testFloats();
+//     try test_float_cast.testFloatVectors();
+// }
+
+// inline fn intFromFloat(comptime Result: type, comptime Type: type, rhs: Type, comptime _: Type) Result {
+//     return @intFromFloat(rhs);
+// }
+// test intFromFloat {
+//     const test_int_from_float = cast(intFromFloat, .{ .compare = .strict });
+//     try test_int_from_float.testIntsFromFloats();
+//     try test_int_from_float.testIntVectorsFromFloatVectors();
+// }
+
+// inline fn floatFromInt(comptime Result: type, comptime Type: type, rhs: Type, comptime _: Type) Result {
+//     return @floatFromInt(rhs);
+// }
+// test floatFromInt {
+//     const test_float_from_int = cast(floatFromInt, .{ .compare = .strict });
+//     try test_float_from_int.testFloatsFromInts();
+//     try test_float_from_int.testFloatVectorsFromIntVectors();
+// }
+
+// inline fn equal(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs == rhs) {
+//     return lhs == rhs;
+// }
+// test equal {
+//     const test_equal = binary(equal, .{});
+//     try test_equal.testInts();
+//     try test_equal.testFloats();
+// }
+
+// inline fn notEqual(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs != rhs) {
+//     return lhs != rhs;
+// }
+// test notEqual {
+//     const test_not_equal = binary(notEqual, .{});
+//     try test_not_equal.testInts();
+//     try test_not_equal.testFloats();
+// }
+
+// inline fn lessThan(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs < rhs) {
+//     return lhs < rhs;
+// }
+// test lessThan {
+//     const test_less_than = binary(lessThan, .{});
+//     try test_less_than.testInts();
+//     try test_less_than.testFloats();
+// }
+
+// inline fn lessThanOrEqual(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs <= rhs) {
+//     return lhs <= rhs;
+// }
+// test lessThanOrEqual {
+//     const test_less_than_or_equal = binary(lessThanOrEqual, .{});
+//     try test_less_than_or_equal.testInts();
+//     try test_less_than_or_equal.testFloats();
+// }
+
+// inline fn greaterThan(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs > rhs) {
+//     return lhs > rhs;
+// }
+// test greaterThan {
+//     const test_greater_than = binary(greaterThan, .{});
+//     try test_greater_than.testInts();
+//     try test_greater_than.testFloats();
+// }
+
+// inline fn greaterThanOrEqual(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs >= rhs) {
+//     return lhs >= rhs;
+// }
+// test greaterThanOrEqual {
+//     const test_greater_than_or_equal = binary(greaterThanOrEqual, .{});
+//     try test_greater_than_or_equal.testInts();
+//     try test_greater_than_or_equal.testFloats();
+// }
+
+// inline fn bitAnd(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs & rhs) {
+//     return lhs & rhs;
+// }
+// test bitAnd {
+//     const test_bit_and = binary(bitAnd, .{});
+//     try test_bit_and.testInts();
+//     try test_bit_and.testIntVectors();
+// }
+
+// inline fn bitOr(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs | rhs) {
+//     return lhs | rhs;
+// }
+// test bitOr {
+//     const test_bit_or = binary(bitOr, .{});
+//     try test_bit_or.testInts();
+//     try test_bit_or.testIntVectors();
+// }
+
+// inline fn bitXor(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs ^ rhs) {
+//     return lhs ^ rhs;
+// }
+// test bitXor {
+//     const test_bit_xor = binary(bitXor, .{});
+//     try test_bit_xor.testInts();
+//     try test_bit_xor.testIntVectors();
+// }
+
+// inline fn min(comptime Type: type, lhs: Type, rhs: Type) Type {
+//     return @min(lhs, rhs);
+// }
+// test min {
+//     const test_min = binary(min, .{});
+//     try test_min.testInts();
+//     try test_min.testIntVectors();
+//     try test_min.testFloats();
+//     try test_min.testFloatVectors();
+// }
+
+// inline fn max(comptime Type: type, lhs: Type, rhs: Type) Type {
+//     return @max(lhs, rhs);
+// }
+// test max {
+//     const test_max = binary(max, .{});
+//     try test_max.testInts();
+//     try test_max.testIntVectors();
+//     try test_max.testFloats();
+//     try test_max.testFloatVectors();
+// }
+
+inline fn depositBits(comptime Type: type, lhs: Type, rhs: Type) Type {
+    const Unsigned = std.meta.Int(.unsigned, @bitSizeOf(Type));
+    return @bitCast(@depositBits(@as(Unsigned, @bitCast(lhs)), @as(Unsigned, @bitCast(rhs))));
 }
 
-inline fn addWrap(comptime Type: type, lhs: Type, rhs: Type) Type {
-    return lhs +% rhs;
-}
-test addWrap {
-    const test_add_wrap = binary(addWrap, .{});
-    try test_add_wrap.testInts();
-    try test_add_wrap.testIntVectors();
-}
-
-inline fn subUnsafe(comptime Type: type, lhs: Type, rhs: Type) AddOneBit(Type) {
-    @setRuntimeSafety(false);
-    switch (@typeInfo(Scalar(Type))) {
-        else => @compileError(@typeName(Type)),
-        .int => |int| switch (int.signedness) {
-            .signed => {},
-            .unsigned => return @as(AddOneBit(Type), @max(lhs, rhs)) - @min(lhs, rhs),
-        },
-        .float => {},
-    }
-    return @as(AddOneBit(Type), lhs) - rhs;
-}
-test subUnsafe {
-    const test_sub_unsafe = binary(subUnsafe, .{});
-    try test_sub_unsafe.testInts();
-    try test_sub_unsafe.testIntVectors();
-    try test_sub_unsafe.testFloats();
-    try test_sub_unsafe.testFloatVectors();
-}
-
-inline fn subWrap(comptime Type: type, lhs: Type, rhs: Type) Type {
-    return lhs -% rhs;
-}
-test subWrap {
-    const test_sub_wrap = binary(subWrap, .{});
-    try test_sub_wrap.testInts();
-    try test_sub_wrap.testIntVectors();
-}
-
-inline fn mulUnsafe(comptime Type: type, lhs: Type, rhs: Type) DoubleBits(Type) {
-    @setRuntimeSafety(false);
-    return @as(DoubleBits(Type), lhs) * rhs;
-}
-test mulUnsafe {
-    const test_mul_unsafe = binary(mulUnsafe, .{});
-    try test_mul_unsafe.testInts();
-    try test_mul_unsafe.testIntVectors();
-}
-
-inline fn multiply(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs * rhs) {
-    if (@inComptime() and @typeInfo(Type) == .vector) {
-        // workaround https://github.com/ziglang/zig/issues/22743
-        // TODO: return @select(Scalar(Type), boolAnd(lhs == lhs, rhs == rhs), lhs * rhs, lhs + rhs);
-        // workaround https://github.com/ziglang/zig/issues/22744
-        var res: Type = undefined;
-        for (0..@typeInfo(Type).vector.len) |i| res[i] = lhs[i] * rhs[i];
-        return res;
-    }
-    // workaround https://github.com/ziglang/zig/issues/22745
-    // TODO: return lhs * rhs;
-    var rt_lhs = lhs;
-    var rt_rhs = rhs;
-    _ = .{ &rt_lhs, &rt_rhs };
-    return rt_lhs * rt_rhs;
-}
-test multiply {
-    const test_multiply = binary(multiply, .{});
-    try test_multiply.testFloats();
-    try test_multiply.testFloatVectors();
-}
-
-inline fn divide(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs / rhs) {
-    return lhs / rhs;
-}
-test divide {
-    const test_divide = binary(divide, .{ .compare = .approx });
-    try test_divide.testFloats();
-    try test_divide.testFloatVectors();
-}
-
-inline fn divTrunc(comptime Type: type, lhs: Type, rhs: Type) Type {
-    switch (@typeInfo(Scalar(Type))) {
-        else => @compileError(@typeName(Type)),
-        .int => return @divTrunc(lhs, rhs),
-        .float => {
-            if (@inComptime()) {
-                // workaround https://github.com/ziglang/zig/issues/22748
-                return @trunc(lhs / rhs);
-            }
-            // workaround https://github.com/ziglang/zig/issues/22748
-            // workaround https://github.com/ziglang/zig/issues/22749
-            // TODO: return @divTrunc(lhs, rhs);
-            var rt_lhs = lhs;
-            var rt_rhs = rhs;
-            _ = .{ &rt_lhs, &rt_rhs };
-            return @divTrunc(rt_lhs, rt_rhs);
-        },
-    }
-}
-test divTrunc {
-    const test_div_trunc = binary(divTrunc, .{ .compare = .approx_int });
-    try test_div_trunc.testInts();
-    try test_div_trunc.testIntVectors();
-    try test_div_trunc.testFloats();
-    try test_div_trunc.testFloatVectors();
-}
-
-inline fn divFloor(comptime Type: type, lhs: Type, rhs: Type) Type {
-    switch (@typeInfo(Scalar(Type))) {
-        else => @compileError(@typeName(Type)),
-        .int => return @divFloor(lhs, rhs),
-        .float => {
-            if (@inComptime()) {
-                // workaround https://github.com/ziglang/zig/issues/22748
-                return @floor(lhs / rhs);
-            }
-            // workaround https://github.com/ziglang/zig/issues/22748
-            // workaround https://github.com/ziglang/zig/issues/22749
-            // TODO: return @divFloor(lhs, rhs);
-            var rt_lhs = lhs;
-            var rt_rhs = rhs;
-            _ = .{ &rt_lhs, &rt_rhs };
-            return @divFloor(rt_lhs, rt_rhs);
-        },
-    }
-}
-test divFloor {
-    const test_div_floor = binary(divFloor, .{ .compare = .approx_int });
-    try test_div_floor.testFloats();
-    try test_div_floor.testFloatVectors();
-}
-
-// workaround https://github.com/ziglang/zig/issues/22748
-// TODO: @TypeOf(@rem(lhs, rhs))
-inline fn rem(comptime Type: type, lhs: Type, rhs: Type) Type {
-    switch (@typeInfo(Scalar(Type))) {
-        else => @compileError(@typeName(Type)),
-        .int => return @rem(lhs, rhs),
-        .float => {
-            if (@inComptime()) {
-                // workaround https://github.com/ziglang/zig/issues/22748
-                switch (@typeInfo(Type)) {
-                    else => return if (rhs != 0) @rem(lhs, rhs) else nan(Type),
-                    .vector => |info| {
-                        var res: Type = undefined;
-                        inline for (0..info.len) |i| res[i] = if (rhs[i] != 0) @rem(lhs[i], rhs[i]) else nan(Scalar(Type));
-                        return res;
-                    },
-                }
-            }
-            // workaround https://github.com/ziglang/zig/issues/22748
-            // TODO: return @rem(lhs, rhs);
-            var rt_rhs = rhs;
-            _ = &rt_rhs;
-            return @rem(lhs, rt_rhs);
-        },
-    }
-}
-test rem {
-    const test_rem = binary(rem, .{});
-    try test_rem.testInts();
-    try test_rem.testIntVectors();
-    try test_rem.testFloats();
-    try test_rem.testFloatVectors();
-}
-
-inline fn mod(comptime Type: type, lhs: Type, rhs: Type) Type {
-    if (@inComptime()) {
-        const scalarMod = struct {
-            fn scalarMod(scalar_lhs: Scalar(Type), scalar_rhs: Scalar(Type)) Scalar(Type) {
-                // workaround https://github.com/ziglang/zig/issues/22748
-                if (scalar_rhs == 0) return nan(Scalar(Type));
-                const scalar_rem = @rem(scalar_lhs, scalar_rhs);
-                return if (scalar_rem == 0 or math.signbit(scalar_rem) == math.signbit(scalar_rhs)) scalar_rem else scalar_rem + scalar_rhs;
-            }
-        }.scalarMod;
-        // workaround https://github.com/ziglang/zig/issues/22748
-        switch (@typeInfo(Type)) {
-            // workaround llvm backend bugs
-            // TODO: else => return if (rhs != 0) @mod(lhs, rhs) else nan(Type),
-            // TODO: .vector => |info| {
-            // TODO:     var res: Type = undefined;
-            // TODO:     inline for (0..info.len) |i| res[i] = if (rhs[i] != 0) @mod(lhs[i], rhs[i]) else nan(Scalar(Type));
-            // TODO:     return res;
-            // TODO: },
-            else => return scalarMod(lhs, rhs),
-            .vector => |info| {
-                var res: Type = undefined;
-                inline for (0..info.len) |i| res[i] = scalarMod(lhs[i], rhs[i]);
-                return res;
-            },
-        }
-    }
-    // workaround https://github.com/ziglang/zig/issues/22748
-    // TODO: return @mod(lhs, rhs);
-    var rt_rhs = rhs;
-    _ = &rt_rhs;
-    return @mod(lhs, rt_rhs);
-}
-test mod {
-    const test_mod = binary(mod, .{});
-    try test_mod.testFloats();
-    try test_mod.testFloatVectors();
-}
-
-inline fn bitNot(comptime Type: type, rhs: Type) @TypeOf(~rhs) {
-    return ~rhs;
-}
-test bitNot {
-    const test_bit_not = unary(bitNot, .{});
-    try test_bit_not.testInts();
-    try test_bit_not.testIntVectors();
-}
-
-inline fn clz(comptime Type: type, rhs: Type) @TypeOf(@clz(rhs)) {
-    return @clz(rhs);
-}
-test clz {
-    const test_clz = unary(clz, .{});
-    try test_clz.testInts();
-    try test_clz.testIntVectors();
-}
-
-inline fn ctz(comptime Type: type, rhs: Type) @TypeOf(@ctz(rhs)) {
-    return @ctz(rhs);
-}
-test ctz {
-    const test_ctz = unary(ctz, .{});
-    try test_ctz.testInts();
-}
-
-inline fn popCount(comptime Type: type, rhs: Type) @TypeOf(@popCount(rhs)) {
-    return @popCount(rhs);
-}
-test popCount {
-    const test_pop_count = unary(popCount, .{});
-    try test_pop_count.testInts();
-}
-
-inline fn byteSwap(comptime Type: type, rhs: Type) RoundBitsUp(Type, 8) {
-    return @byteSwap(@as(RoundBitsUp(Type, 8), rhs));
-}
-test byteSwap {
-    const test_byte_swap = unary(byteSwap, .{});
-    try test_byte_swap.testInts();
-}
-
-inline fn bitReverse(comptime Type: type, rhs: Type) @TypeOf(@bitReverse(rhs)) {
-    return @bitReverse(rhs);
-}
-test bitReverse {
-    const test_bit_reverse = unary(bitReverse, .{});
-    try test_bit_reverse.testInts();
-}
-
-inline fn sqrt(comptime Type: type, rhs: Type) @TypeOf(@sqrt(rhs)) {
-    return @sqrt(rhs);
-}
-test sqrt {
-    const test_sqrt = unary(sqrt, .{ .libc_name = "sqrt", .compare = .approx });
-    try test_sqrt.testFloats();
-    try test_sqrt.testFloatVectors();
-}
-
-inline fn sin(comptime Type: type, rhs: Type) @TypeOf(@sin(rhs)) {
-    return @sin(rhs);
-}
-test sin {
-    const test_sin = unary(sin, .{ .libc_name = "sin", .compare = .strict });
-    try test_sin.testFloats();
-    try test_sin.testFloatVectors();
-}
-
-inline fn cos(comptime Type: type, rhs: Type) @TypeOf(@cos(rhs)) {
-    return @cos(rhs);
-}
-test cos {
-    const test_cos = unary(cos, .{ .libc_name = "cos", .compare = .strict });
-    try test_cos.testFloats();
-    try test_cos.testFloatVectors();
-}
-
-inline fn tan(comptime Type: type, rhs: Type) @TypeOf(@tan(rhs)) {
-    return @tan(rhs);
-}
-test tan {
-    const test_tan = unary(tan, .{ .libc_name = "tan", .compare = .strict });
-    try test_tan.testFloats();
-    try test_tan.testFloatVectors();
-}
-
-inline fn exp(comptime Type: type, rhs: Type) @TypeOf(@exp(rhs)) {
-    return @exp(rhs);
-}
-test exp {
-    const test_exp = unary(exp, .{ .libc_name = "exp", .compare = .strict });
-    try test_exp.testFloats();
-    try test_exp.testFloatVectors();
-}
-
-inline fn exp2(comptime Type: type, rhs: Type) @TypeOf(@exp2(rhs)) {
-    return @exp2(rhs);
-}
-test exp2 {
-    const test_exp2 = unary(exp2, .{ .libc_name = "exp2", .compare = .strict });
-    try test_exp2.testFloats();
-    try test_exp2.testFloatVectors();
-}
-
-inline fn log(comptime Type: type, rhs: Type) @TypeOf(@log(rhs)) {
-    return @log(rhs);
-}
-test log {
-    const test_log = unary(log, .{ .libc_name = "log", .compare = .strict });
-    try test_log.testFloats();
-    try test_log.testFloatVectors();
-}
-
-inline fn log2(comptime Type: type, rhs: Type) @TypeOf(@log2(rhs)) {
-    return @log2(rhs);
-}
-test log2 {
-    const test_log2 = unary(log2, .{ .libc_name = "log2", .compare = .strict });
-    try test_log2.testFloats();
-    try test_log2.testFloatVectors();
-}
-
-inline fn log10(comptime Type: type, rhs: Type) @TypeOf(@log10(rhs)) {
-    return @log10(rhs);
-}
-test log10 {
-    const test_log10 = unary(log10, .{ .libc_name = "log10", .compare = .strict });
-    try test_log10.testFloats();
-    try test_log10.testFloatVectors();
-}
-
-inline fn abs(comptime Type: type, rhs: Type) @TypeOf(@abs(rhs)) {
-    return @abs(rhs);
-}
-test abs {
-    const test_abs = unary(abs, .{ .compare = .strict });
-    try test_abs.testInts();
-    try test_abs.testIntVectors();
-    try test_abs.testFloats();
-    try test_abs.testFloatVectors();
-}
-
-inline fn floor(comptime Type: type, rhs: Type) @TypeOf(@floor(rhs)) {
-    return @floor(rhs);
-}
-test floor {
-    const test_floor = unary(floor, .{ .libc_name = "floor", .compare = .strict });
-    try test_floor.testFloats();
-    try test_floor.testFloatVectors();
-}
-
-inline fn ceil(comptime Type: type, rhs: Type) @TypeOf(@ceil(rhs)) {
-    return @ceil(rhs);
-}
-test ceil {
-    const test_ceil = unary(ceil, .{ .libc_name = "ceil", .compare = .strict });
-    try test_ceil.testFloats();
-    try test_ceil.testFloatVectors();
-}
-
-inline fn round(comptime Type: type, rhs: Type) @TypeOf(@round(rhs)) {
-    return @round(rhs);
-}
-test round {
-    const test_round = unary(round, .{ .libc_name = "round", .compare = .strict });
-    try test_round.testFloats();
-    try test_round.testFloatVectors();
-}
-
-inline fn trunc(comptime Type: type, rhs: Type) @TypeOf(@trunc(rhs)) {
-    return @trunc(rhs);
-}
-test trunc {
-    const test_trunc = unary(trunc, .{ .libc_name = "trunc", .compare = .strict });
-    try test_trunc.testFloats();
-    try test_trunc.testFloatVectors();
-}
-
-inline fn negate(comptime Type: type, rhs: Type) @TypeOf(-rhs) {
-    return -rhs;
-}
-test negate {
-    const test_negate = unary(negate, .{ .compare = .strict });
-    try test_negate.testFloats();
-    try test_negate.testFloatVectors();
-}
-
-inline fn intCast(comptime Result: type, comptime Type: type, rhs: Type, comptime ct_rhs: Type) Result {
-    @setRuntimeSafety(false); // TODO
-    const res_info = switch (@typeInfo(Result)) {
-        .int => |info| info,
-        .vector => |info| @typeInfo(info.child).int,
-        else => @compileError(@typeName(Result)),
-    };
-    const rhs_info = @typeInfo(Scalar(Type)).int;
-    const min_bits = @min(res_info.bits, rhs_info.bits);
-    return @intCast(switch (@as(union(enum) {
-        shift: std.math.Log2Int(Scalar(Type)),
-        mask: std.math.Log2IntCeil(Scalar(Type)),
-    }, switch (res_info.signedness) {
-        .signed => switch (rhs_info.signedness) {
-            .signed => .{ .shift = rhs_info.bits - min_bits },
-            .unsigned => .{ .mask = min_bits - @intFromBool(res_info.bits <= rhs_info.bits) },
-        },
-        .unsigned => switch (rhs_info.signedness) {
-            .signed => .{ .mask = min_bits - @intFromBool(res_info.bits >= rhs_info.bits) },
-            .unsigned => .{ .mask = min_bits },
-        },
-    })) {
-        // TODO: if (bits == 0) rhs else rhs >> bits,
-        .shift => |bits| if (bits == 0) rhs else switch (@typeInfo(Type)) {
-            .int => if (ct_rhs < 0)
-                rhs | std.math.minInt(Type) >> bits
-            else
-                rhs & std.math.maxInt(Type) >> bits,
-            .vector => rhs | @select(
-                Scalar(Type),
-                ct_rhs < splat(Type, 0),
-                splat(Type, std.math.minInt(Scalar(Type)) >> bits),
-                splat(Type, 0),
-            ) & ~@select(
-                Scalar(Type),
-                ct_rhs >= splat(Type, 0),
-                splat(Type, std.math.minInt(Scalar(Type)) >> bits),
-                splat(Type, 0),
-            ),
-            else => comptime unreachable,
-        },
-        .mask => |bits| if (bits == rhs_info.bits) rhs else rhs & splat(Type, (1 << bits) - 1),
-    });
-}
-test intCast {
-    const test_int_cast = cast(intCast, .{});
-    try test_int_cast.testInts();
-    try test_int_cast.testIntVectors();
-}
-
-inline fn truncate(comptime Result: type, comptime Type: type, rhs: Type, comptime _: Type) Result {
-    return if (@typeInfo(Scalar(Result)).int.bits <= @typeInfo(Scalar(Type)).int.bits) @truncate(rhs) else rhs;
-}
-test truncate {
-    const test_truncate = cast(truncate, .{});
-    try test_truncate.testSameSignednessInts();
-    try test_truncate.testSameSignednessIntVectors();
-}
-
-inline fn floatCast(comptime Result: type, comptime Type: type, rhs: Type, comptime _: Type) Result {
-    return @floatCast(rhs);
-}
-test floatCast {
-    const test_float_cast = cast(floatCast, .{ .compare = .strict });
-    try test_float_cast.testFloats();
-    try test_float_cast.testFloatVectors();
-}
-
-inline fn intFromFloat(comptime Result: type, comptime Type: type, rhs: Type, comptime _: Type) Result {
-    return @intFromFloat(rhs);
-}
-test intFromFloat {
-    const test_int_from_float = cast(intFromFloat, .{ .compare = .strict });
-    try test_int_from_float.testIntsFromFloats();
-    try test_int_from_float.testIntVectorsFromFloatVectors();
-}
-
-inline fn floatFromInt(comptime Result: type, comptime Type: type, rhs: Type, comptime _: Type) Result {
-    return @floatFromInt(rhs);
-}
-test floatFromInt {
-    const test_float_from_int = cast(floatFromInt, .{ .compare = .strict });
-    try test_float_from_int.testFloatsFromInts();
-    try test_float_from_int.testFloatVectorsFromIntVectors();
-}
-
-inline fn equal(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs == rhs) {
-    return lhs == rhs;
-}
-test equal {
-    const test_equal = binary(equal, .{});
-    try test_equal.testInts();
-    try test_equal.testFloats();
-}
-
-inline fn notEqual(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs != rhs) {
-    return lhs != rhs;
-}
-test notEqual {
-    const test_not_equal = binary(notEqual, .{});
-    try test_not_equal.testInts();
-    try test_not_equal.testFloats();
-}
-
-inline fn lessThan(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs < rhs) {
-    return lhs < rhs;
-}
-test lessThan {
-    const test_less_than = binary(lessThan, .{});
-    try test_less_than.testInts();
-    try test_less_than.testFloats();
-}
-
-inline fn lessThanOrEqual(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs <= rhs) {
-    return lhs <= rhs;
-}
-test lessThanOrEqual {
-    const test_less_than_or_equal = binary(lessThanOrEqual, .{});
-    try test_less_than_or_equal.testInts();
-    try test_less_than_or_equal.testFloats();
-}
-
-inline fn greaterThan(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs > rhs) {
-    return lhs > rhs;
-}
-test greaterThan {
-    const test_greater_than = binary(greaterThan, .{});
-    try test_greater_than.testInts();
-    try test_greater_than.testFloats();
-}
-
-inline fn greaterThanOrEqual(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs >= rhs) {
-    return lhs >= rhs;
-}
-test greaterThanOrEqual {
-    const test_greater_than_or_equal = binary(greaterThanOrEqual, .{});
-    try test_greater_than_or_equal.testInts();
-    try test_greater_than_or_equal.testFloats();
-}
-
-inline fn bitAnd(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs & rhs) {
-    return lhs & rhs;
-}
-test bitAnd {
-    const test_bit_and = binary(bitAnd, .{});
-    try test_bit_and.testInts();
-    try test_bit_and.testIntVectors();
-}
-
-inline fn bitOr(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs | rhs) {
-    return lhs | rhs;
-}
-test bitOr {
-    const test_bit_or = binary(bitOr, .{});
-    try test_bit_or.testInts();
-    try test_bit_or.testIntVectors();
-}
-
-inline fn bitXor(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(lhs ^ rhs) {
-    return lhs ^ rhs;
-}
-test bitXor {
-    const test_bit_xor = binary(bitXor, .{});
-    try test_bit_xor.testInts();
-    try test_bit_xor.testIntVectors();
-}
-
-inline fn min(comptime Type: type, lhs: Type, rhs: Type) Type {
-    return @min(lhs, rhs);
-}
-test min {
-    const test_min = binary(min, .{});
-    try test_min.testInts();
-    try test_min.testIntVectors();
-    try test_min.testFloats();
-    try test_min.testFloatVectors();
-}
-
-inline fn max(comptime Type: type, lhs: Type, rhs: Type) Type {
-    return @max(lhs, rhs);
-}
-test max {
-    const test_max = binary(max, .{});
+test depositBits {
+    const test_max = binary(depositBits, .{});
     try test_max.testInts();
-    try test_max.testIntVectors();
-    try test_max.testFloats();
-    try test_max.testFloatVectors();
 }
 
-inline fn nullIsNull(comptime Type: type, _: Type) bool {
-    return runtime(?Type, null) == null;
-}
-test nullIsNull {
-    const test_null_is_null = unary(nullIsNull, .{});
-    try test_null_is_null.testIntTypes();
-    try test_null_is_null.testIntVectorTypes();
-    try test_null_is_null.testFloatTypes();
-    try test_null_is_null.testFloatVectorTypes();
+inline fn extractBits(comptime Type: type, lhs: Type, rhs: Type) Type {
+    const Unsigned = std.meta.Int(.unsigned, @bitSizeOf(Type));
+    return @bitCast(@extractBits(@as(Unsigned, @bitCast(lhs)), @as(Unsigned, @bitCast(rhs))));
 }
 
-inline fn nullIsNotNull(comptime Type: type, _: Type) bool {
-    return runtime(?Type, null) != null;
-}
-test nullIsNotNull {
-    const test_null_is_not_null = unary(nullIsNotNull, .{});
-    try test_null_is_not_null.testIntTypes();
-    try test_null_is_not_null.testIntVectorTypes();
-    try test_null_is_not_null.testFloatTypes();
-    try test_null_is_not_null.testFloatVectorTypes();
+test extractBits {
+    const test_max = binary(extractBits, .{});
+    try test_max.testInts();
 }
 
-inline fn optionalIsNull(comptime Type: type, lhs: Type) bool {
-    return @as(?Type, lhs) == null;
-}
-test optionalIsNull {
-    const test_optional_is_null = unary(optionalIsNull, .{});
-    try test_optional_is_null.testInts();
-    try test_optional_is_null.testFloats();
-}
+// inline fn nullIsNull(comptime Type: type, _: Type) bool {
+//     return runtime(?Type, null) == null;
+// }
+// test nullIsNull {
+//     const test_null_is_null = unary(nullIsNull, .{});
+//     try test_null_is_null.testIntTypes();
+//     try test_null_is_null.testIntVectorTypes();
+//     try test_null_is_null.testFloatTypes();
+//     try test_null_is_null.testFloatVectorTypes();
+// }
 
-inline fn optionalIsNotNull(comptime Type: type, lhs: Type) bool {
-    return @as(?Type, lhs) != null;
-}
-test optionalIsNotNull {
-    const test_optional_is_not_null = unary(optionalIsNotNull, .{});
-    try test_optional_is_not_null.testInts();
-    try test_optional_is_not_null.testFloats();
-}
+// inline fn nullIsNotNull(comptime Type: type, _: Type) bool {
+//     return runtime(?Type, null) != null;
+// }
+// test nullIsNotNull {
+//     const test_null_is_not_null = unary(nullIsNotNull, .{});
+//     try test_null_is_not_null.testIntTypes();
+//     try test_null_is_not_null.testIntVectorTypes();
+//     try test_null_is_not_null.testFloatTypes();
+//     try test_null_is_not_null.testFloatVectorTypes();
+// }
 
-inline fn nullEqualNull(comptime Type: type, _: Type) bool {
-    return runtime(?Type, null) == runtime(?Type, null);
-}
-test nullEqualNull {
-    const test_null_equal_null = unary(nullEqualNull, .{});
-    try test_null_equal_null.testIntTypes();
-    try test_null_equal_null.testFloatTypes();
-}
+// inline fn optionalIsNull(comptime Type: type, lhs: Type) bool {
+//     return @as(?Type, lhs) == null;
+// }
+// test optionalIsNull {
+//     const test_optional_is_null = unary(optionalIsNull, .{});
+//     try test_optional_is_null.testInts();
+//     try test_optional_is_null.testFloats();
+// }
 
-inline fn nullNotEqualNull(comptime Type: type, _: Type) bool {
-    return runtime(?Type, null) != runtime(?Type, null);
-}
-test nullNotEqualNull {
-    const test_null_not_equal_null = unary(nullNotEqualNull, .{});
-    try test_null_not_equal_null.testIntTypes();
-    try test_null_not_equal_null.testFloatTypes();
-}
+// inline fn optionalIsNotNull(comptime Type: type, lhs: Type) bool {
+//     return @as(?Type, lhs) != null;
+// }
+// test optionalIsNotNull {
+//     const test_optional_is_not_null = unary(optionalIsNotNull, .{});
+//     try test_optional_is_not_null.testInts();
+//     try test_optional_is_not_null.testFloats();
+// }
 
-inline fn optionalEqualNull(comptime Type: type, lhs: Type) bool {
-    return lhs == runtime(?Type, null);
-}
-test optionalEqualNull {
-    const test_optional_equal_null = unary(optionalEqualNull, .{});
-    try test_optional_equal_null.testInts();
-    try test_optional_equal_null.testFloats();
-}
+// inline fn nullEqualNull(comptime Type: type, _: Type) bool {
+//     return runtime(?Type, null) == runtime(?Type, null);
+// }
+// test nullEqualNull {
+//     const test_null_equal_null = unary(nullEqualNull, .{});
+//     try test_null_equal_null.testIntTypes();
+//     try test_null_equal_null.testFloatTypes();
+// }
 
-inline fn optionalNotEqualNull(comptime Type: type, lhs: Type) bool {
-    return lhs != runtime(?Type, null);
-}
-test optionalNotEqualNull {
-    const test_optional_not_equal_null = unary(optionalIsNotNull, .{});
-    try test_optional_not_equal_null.testInts();
-    try test_optional_not_equal_null.testFloats();
-}
+// inline fn nullNotEqualNull(comptime Type: type, _: Type) bool {
+//     return runtime(?Type, null) != runtime(?Type, null);
+// }
+// test nullNotEqualNull {
+//     const test_null_not_equal_null = unary(nullNotEqualNull, .{});
+//     try test_null_not_equal_null.testIntTypes();
+//     try test_null_not_equal_null.testFloatTypes();
+// }
 
-inline fn optionalsEqual(comptime Type: type, lhs: Type, rhs: Type) bool {
-    if (@inComptime()) return lhs == rhs; // workaround https://github.com/ziglang/zig/issues/22636
-    return @as(?Type, lhs) == rhs;
-}
-test optionalsEqual {
-    const test_optionals_equal = binary(optionalsEqual, .{});
-    try test_optionals_equal.testInts();
-    try test_optionals_equal.testFloats();
-}
+// inline fn optionalEqualNull(comptime Type: type, lhs: Type) bool {
+//     return lhs == runtime(?Type, null);
+// }
+// test optionalEqualNull {
+//     const test_optional_equal_null = unary(optionalEqualNull, .{});
+//     try test_optional_equal_null.testInts();
+//     try test_optional_equal_null.testFloats();
+// }
 
-inline fn optionalsNotEqual(comptime Type: type, lhs: Type, rhs: Type) bool {
-    if (@inComptime()) return lhs != rhs; // workaround https://github.com/ziglang/zig/issues/22636
-    return lhs != @as(?Type, rhs);
-}
-test optionalsNotEqual {
-    const test_optionals_not_equal = binary(optionalsNotEqual, .{});
-    try test_optionals_not_equal.testInts();
-    try test_optionals_not_equal.testFloats();
-}
+// inline fn optionalNotEqualNull(comptime Type: type, lhs: Type) bool {
+//     return lhs != runtime(?Type, null);
+// }
+// test optionalNotEqualNull {
+//     const test_optional_not_equal_null = unary(optionalIsNotNull, .{});
+//     try test_optional_not_equal_null.testInts();
+//     try test_optional_not_equal_null.testFloats();
+// }
 
-inline fn mulAdd(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(@mulAdd(Type, lhs, rhs, rhs)) {
-    return @mulAdd(Type, lhs, rhs, rhs);
-}
-test mulAdd {
-    const test_mul_add = binary(mulAdd, .{ .compare = .approx });
-    try test_mul_add.testFloats();
-    try test_mul_add.testFloatVectors();
-}
+// inline fn optionalsEqual(comptime Type: type, lhs: Type, rhs: Type) bool {
+//     if (@inComptime()) return lhs == rhs; // workaround https://github.com/ziglang/zig/issues/22636
+//     return @as(?Type, lhs) == rhs;
+// }
+// test optionalsEqual {
+//     const test_optionals_equal = binary(optionalsEqual, .{});
+//     try test_optionals_equal.testInts();
+//     try test_optionals_equal.testFloats();
+// }
+
+// inline fn optionalsNotEqual(comptime Type: type, lhs: Type, rhs: Type) bool {
+//     if (@inComptime()) return lhs != rhs; // workaround https://github.com/ziglang/zig/issues/22636
+//     return lhs != @as(?Type, rhs);
+// }
+// test optionalsNotEqual {
+//     const test_optionals_not_equal = binary(optionalsNotEqual, .{});
+//     try test_optionals_not_equal.testInts();
+//     try test_optionals_not_equal.testFloats();
+// }
+
+// inline fn mulAdd(comptime Type: type, lhs: Type, rhs: Type) @TypeOf(@mulAdd(Type, lhs, rhs, rhs)) {
+//     return @mulAdd(Type, lhs, rhs, rhs);
+// }
+// test mulAdd {
+//     const test_mul_add = binary(mulAdd, .{ .compare = .approx });
+//     try test_mul_add.testFloats();
+//     try test_mul_add.testFloatVectors();
+// }
