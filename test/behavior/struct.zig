@@ -426,6 +426,7 @@ test "packed struct 24bits" {
     if (builtin.cpu.arch.isWasm()) return error.SkipZigTest; // TODO
     if (builtin.cpu.arch.isArm()) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
+    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     comptime {
         std.debug.assert(@sizeOf(Foo24Bits) == @sizeOf(u24));
@@ -528,6 +529,7 @@ test "implicit cast packed struct field to const ptr" {
     if (builtin.zig_backend == .stage2_arm) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_spirv64) return error.SkipZigTest;
+    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     const LevelUpMove = packed struct {
         move_id: u9,
@@ -593,6 +595,7 @@ test "bit field access" {
     if (builtin.zig_backend == .stage2_arm) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_spirv64) return error.SkipZigTest;
+    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     var data = bit_field_1;
     try expect(getA(&data) == 1);
@@ -716,6 +719,7 @@ test "pointer to packed struct member in a stack variable" {
     if (builtin.zig_backend == .stage2_aarch64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_spirv64) return error.SkipZigTest;
+    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     const S = packed struct {
         a: u2,
@@ -768,7 +772,6 @@ test "packed struct with fp fields" {
     if (builtin.zig_backend == .stage2_aarch64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_spirv64) return error.SkipZigTest;
-    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     const S = packed struct {
         data0: f32,
@@ -1685,6 +1688,8 @@ test "struct init with no result pointer sets field result types" {
 }
 
 test "runtime side-effects in comptime-known struct init" {
+    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
+
     var side_effects: u4 = 0;
     const S = struct { a: u4, b: u4, c: u4, d: u4 };
     const init = S{

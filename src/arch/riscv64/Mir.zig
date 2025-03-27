@@ -99,7 +99,42 @@ pub const Inst = struct {
         writer: anytype,
     ) !void {
         assert(fmt.len == 0);
-        try writer.print("Tag: {s}, Data: {s}", .{ @tagName(inst.tag), @tagName(inst.data) });
+        const mnem = @tagName(inst.tag);
+        switch (inst.data) {
+            .none => try writer.writeAll(mnem),
+            .r_type => |r_type| try writer.print("{s} {s} {s} {s}", .{
+                mnem,
+                @tagName(r_type.rd),
+                @tagName(r_type.rs1),
+                @tagName(r_type.rs2),
+            }),
+            .i_type => |i_type| try writer.print("{s} {s} {s} {}", .{
+                mnem,
+                @tagName(i_type.rd),
+                @tagName(i_type.rs1),
+                i_type.imm12,
+            }),
+            .u_type => |u_type| try writer.print("{s} {s} {}", .{
+                mnem,
+                @tagName(u_type.rd),
+                u_type.imm20,
+            }),
+            .b_type => |b_type| try writer.print("{s} {s} {s} %{{some index}}", .{
+                mnem,
+                @tagName(b_type.rs1),
+                @tagName(b_type.rs2),
+                // inst is undefined, so not really much point in printing it
+            }),
+            .reloc => |reloc| try writer.print("{s} {s} [{d} + {d}]", .{
+                mnem,
+                @tagName(reloc.register),
+                reloc.sym_index,
+                reloc.atom_index,
+            }),
+            .rr => |rr| try writer.print("{s} {s} {s}", .{ mnem, @tagName(rr.rd), @tagName(rr.rs) }),
+            .rm => |rm| try writer.print("{s} {s} {}", .{ mnem, @tagName(rm.r), rm.m }),
+            else => try writer.print("Tag: {s}, Data: {s}", .{ mnem, @tagName(inst.data) }),
+        }
     }
 };
 

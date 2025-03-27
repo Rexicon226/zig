@@ -1,6 +1,7 @@
 pub const Mnemonic = enum(u16) {
     // Arithmetics
     addi,
+    addiw,
     add,
     addw,
 
@@ -151,6 +152,7 @@ pub const Mnemonic = enum(u16) {
     vsetvli,
     vsetivli,
     vaddvv,
+    vadcvv,
     vfaddvv,
     vsubvv,
     vfsubvv,
@@ -168,14 +170,29 @@ pub const Mnemonic = enum(u16) {
     vse32v,
     vse64v,
 
-    vadcvv,
     vmvvx,
+    vmvxs,
+
+    vredsumvs,
+    vredandvs,
+    vredorvs,
+    vredxorvs,
+    vredminuvs,
+    vredminvs,
+    vredmaxuvs,
+    vredmaxvs,
 
     // Zbb Extension Instructions
     clz,
     clzw,
+    ctz,
+    ctzw,
     cpop,
     cpopw,
+    min,
+    minu,
+    max,
+    maxu,
 
     // A Extension Instructions
     fence,
@@ -215,6 +232,11 @@ pub const Mnemonic = enum(u16) {
     /// function epilogue
     pseudo_epilogue,
 
+    /// Pseudo-instruction that generates a sequence of instructions
+    /// for adding large numbers to registers.
+    /// Acts as an `addi` instruction.
+    pseudo_large_addi,
+
     /// Pseudo-instruction: End of prologue
     pseudo_dbg_prologue_end,
     /// Pseudo-instruction: Beginning of epilogue
@@ -236,9 +258,6 @@ pub const Mnemonic = enum(u16) {
     pseudo_load_symbol,
     /// Loads the address of a TLV.
     pseudo_load_tlv,
-
-    /// Moves the value of rs1 to rd.
-    pseudo_mv,
 
     pseudo_restore_regs,
     pseudo_spill_regs,

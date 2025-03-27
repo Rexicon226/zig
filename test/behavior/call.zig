@@ -510,8 +510,6 @@ test "call inline fn through pointer" {
 }
 
 test "call coerced function" {
-    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
-
     const T = struct {
         x: f64,
         const T = @This();

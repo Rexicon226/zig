@@ -192,6 +192,12 @@ pub const Lir = struct {
             .srl     => .{ .opcode = .OP, .format = .R, .data = .{ .ff = .{ .funct3 = 0b101, .funct7 = 0b0000000 } } },
             .sra     => .{ .opcode = .OP, .format = .R, .data = .{ .ff = .{ .funct3 = 0b101, .funct7 = 0b0100000 } } },
 
+            .min     => .{ .opcode = .OP, .format = .R, .data = .{ .ff = .{ .funct3 = 0b100, .funct7 = 0b0000101 } } },
+            .minu    => .{ .opcode = .OP, .format = .R, .data = .{ .ff = .{ .funct3 = 0b101, .funct7 = 0b0000101 } } },
+            .max     => .{ .opcode = .OP, .format = .R, .data = .{ .ff = .{ .funct3 = 0b110, .funct7 = 0b0000101 } } },
+            .maxu    => .{ .opcode = .OP, .format = .R, .data = .{ .ff = .{ .funct3 = 0b111, .funct7 = 0b0000101 } } },
+
+
 
             // OP_IMM
 
@@ -206,15 +212,19 @@ pub const Lir = struct {
             .srai    => .{ .opcode = .OP_IMM, .format = .I, .data = .{ .sh = .{ .typ = 0b010000, .funct3 = 0b101, .has_5 = true } } },
 
             .clz     => .{ .opcode = .OP_IMM, .format = .R, .data = .{ .ff = .{ .funct3 = 0b001, .funct7 = 0b0110000 } } },
+            .ctz     => .{ .opcode = .OP_IMM, .format = .R, .data = .{ .ff = .{ .funct3 = 0b001, .funct7 = 0b0110000 } } },
             .cpop    => .{ .opcode = .OP_IMM, .format = .R, .data = .{ .ff = .{ .funct3 = 0b001, .funct7 = 0b0110000 } } },
 
             // OP_IMM_32
+            
+            .addiw   => .{ .opcode = .OP_IMM_32, .format = .I, .data = .{ .f  = .{ .funct3 = 0b000 } } },
 
             .slliw   => .{ .opcode = .OP_IMM_32, .format = .I, .data = .{ .sh = .{ .typ = 0b000000, .funct3 = 0b001, .has_5 = false } } },
             .srliw   => .{ .opcode = .OP_IMM_32, .format = .I, .data = .{ .sh = .{ .typ = 0b000000, .funct3 = 0b101, .has_5 = false } } },
             .sraiw   => .{ .opcode = .OP_IMM_32, .format = .I, .data = .{ .sh = .{ .typ = 0b010000, .funct3 = 0b101, .has_5 = false } } },
 
             .clzw    => .{ .opcode = .OP_IMM_32, .format = .R, .data = .{ .ff = .{ .funct3 = 0b001, .funct7 = 0b0110000 } } },
+            .ctzw    => .{ .opcode = .OP_IMM_32, .format = .R, .data = .{ .ff = .{ .funct3 = 0b001, .funct7 = 0b0110000 } } },
             .cpopw   => .{ .opcode = .OP_IMM_32, .format = .R, .data = .{ .ff = .{ .funct3 = 0b001, .funct7 = 0b0110000 } } },
 
             // OP_32
@@ -416,10 +426,22 @@ pub const Lir = struct {
             .vfmulvv        => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b100100, .funct3 = .OPFVV } } },
             
             .vadcvv         => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b010000, .funct3 = .OPMVV } } },
+
             .vmvvx          => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b010111, .funct3 = .OPIVX } } },
+            .vmvxs          => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b010000, .funct3 = .OPMVV } } },
 
             .vslidedownvx   => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b001111, .funct3 = .OPIVX } } },
-            
+
+            .vredsumvs      => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b000000, .funct3 = .OPMVV } } },
+            .vredandvs      => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b000001, .funct3 = .OPMVV } } },
+            .vredorvs       => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b000010, .funct3 = .OPMVV } } },
+            .vredxorvs      => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b000011, .funct3 = .OPMVV } } },
+            .vredminuvs     => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b000100, .funct3 = .OPMVV } } },
+            .vredminvs      => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b000101, .funct3 = .OPMVV } } },
+            .vredmaxuvs     => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b000110, .funct3 = .OPMVV } } },
+            .vredmaxvs      => .{ .opcode = .OP_V, .format = .R, .data = .{ .vecmath = .{ .vm = true, .funct6 = 0b000111, .funct3 = .OPMVV } } },
+
+            // pseudo
 
             .pseudo_prologue,
             .pseudo_epilogue,
@@ -433,12 +455,12 @@ pub const Lir = struct {
             .pseudo_dead,
             .pseudo_load_symbol,
             .pseudo_load_tlv,
-            .pseudo_mv,
             .pseudo_restore_regs,
             .pseudo_spill_regs,
             .pseudo_compare,
             .pseudo_not,
             .pseudo_extern_fn_reloc,
+            .pseudo_large_addi,
             .nop,
             => std.debug.panic("lir: didn't catch pseudo {s}", .{@tagName(mnem)}),
             // zig fmt: on

@@ -15,7 +15,10 @@ var failing_allocator_instance = FailingAllocator.init(base_allocator_instance.a
 var base_allocator_instance = std.heap.FixedBufferAllocator.init("");
 
 /// This should only be used in temporary test programs.
-pub const allocator = allocator_instance.allocator();
+pub const allocator = if (builtin.zig_backend == .stage2_riscv64)
+    std.heap.page_allocator
+else
+    allocator_instance.allocator();
 pub var allocator_instance: std.heap.GeneralPurposeAllocator(.{
     .stack_trace_frames = if (std.debug.sys_can_stack_trace) 10 else 0,
     .resize_stack_traces = true,

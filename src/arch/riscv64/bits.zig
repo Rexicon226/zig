@@ -18,47 +18,79 @@ pub const Memory = struct {
 
     pub const Mod = struct {
         size: Size,
-        unsigned: bool,
+        unsigned: bool = false,
         disp: i32 = 0,
     };
 
     pub const Size = enum(u4) {
-        /// Byte, 1 byte
+        none,
         byte,
-        /// Half word, 2 bytes
-        hword,
-        /// Word, 4 bytes
+        half,
         word,
-        /// Double word, 8 Bytes
-        dword,
+        double,
 
         pub fn fromByteSize(size: u64) Size {
             return switch (size) {
                 1...1 => .byte,
-                2...2 => .hword,
+                2...2 => .half,
                 3...4 => .word,
-                5...8 => .dword,
-                else => std.debug.panic("fromByteSize {}", .{size}),
+                5...8 => .double,
+                else => unreachable,
             };
         }
 
         pub fn fromBitSize(bit_size: u64) Size {
             return switch (bit_size) {
                 8 => .byte,
-                16 => .hword,
+                16 => .half,
                 32 => .word,
-                64 => .dword,
+                64 => .double,
                 else => unreachable,
             };
         }
 
         pub fn bitSize(s: Size) u64 {
             return switch (s) {
+                .none => 0,
                 .byte => 8,
-                .hword => 16,
+                .half => 16,
                 .word => 32,
-                .dword => 64,
+                .double => 64,
             };
+        }
+    };
+
+    pub const Scale = enum(u2) {
+        @"1",
+        @"2",
+        @"4",
+        @"8",
+
+        pub fn fromFactor(factor: u4) Scale {
+            return switch (factor) {
+                else => unreachable,
+                1 => .@"1",
+                2 => .@"2",
+                4 => .@"4",
+                8 => .@"8",
+            };
+        }
+
+        pub fn toFactor(scale: Scale) u4 {
+            return switch (scale) {
+                .@"1" => 1,
+                .@"2" => 2,
+                .@"4" => 4,
+                .@"8" => 8,
+            };
+        }
+
+        pub fn fromLog2(log2: u2) Scale {
+            return @enumFromInt(log2);
+        }
+
+        pub fn toLog2(scale: Scale) u2 {
+            return @intFromEnum(scale);
         }
     };
 
@@ -81,6 +113,22 @@ pub const Memory = struct {
                 };
             },
         }
+    }
+
+    pub fn format(
+        mem: Memory,
+        comptime _: []const u8,
+        _: std.fmt.FormatOptions,
+        writer: anytype,
+    ) !void {
+        switch (mem.base) {
+            .reg => |reg| try writer.writeAll(@tagName(reg)),
+            .frame => |frame| try writer.print("{}", .{frame}),
+        }
+        try writer.print(" {s} {}", .{
+            @tagName(mem.mod.size),
+            mem.mod.disp,
+        });
     }
 };
 
@@ -122,6 +170,26 @@ pub const Immediate = union(enum) {
             .unsigned => |x| @intCast(x),
         };
     }
+
+    pub fn cast(imm: Immediate, comptime T: type) ?T {
+        return switch (imm) {
+            inline .signed,
+            .unsigned,
+            => |x| std.math.cast(T, x),
+        };
+    }
+
+    pub fn format(
+        imm: Immediate,
+        comptime _: []const u8,
+        _: std.fmt.FormatOptions,
+        writer: anytype,
+    ) !void {
+        return switch (imm) {
+            .signed => |x| try writer.print("s{d}", .{x}),
+            .unsigned => |x| try writer.print("u{d}", .{x}),
+        };
+    }
 };
 
 pub const CSR = enum(u12) {
@@ -146,7 +214,8 @@ pub const Register = enum(u8) {
     a0, a1, // fn args/return values. caller saved.
     a2, a3, a4, a5, a6, a7, // fn args. caller saved.
     s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, // saved registers. callee saved.
-    t3, t4, t5, t6, // caller saved
+    t3, t4, t5, // caller saved
+    scratch, // caller saved - used internally in our codegen
 
     x0,  x1,  x2,  x3,  x4,  x5,  x6,  x7,
     x8,  x9,  x10, x11, x12, x13, x14, x15,
@@ -178,6 +247,8 @@ pub const Register = enum(u8) {
     v16, v17, v18, v19, v20, v21, v22, v23,
     v24, v25, v26, v27, v28, v29, v30, v31,
 
+    // pseudo placeholder for some selection logic
+    none,
     // zig fmt: on
 
     /// in RISC-V registers are stored as 5 bit IDs and a register can have
@@ -232,6 +303,17 @@ pub const Register = enum(u8) {
             else => unreachable,
             // zig fmt: on
         };
+    }
+
+    pub fn format(
+        reg: Register,
+        comptime fmt: []const u8,
+        options: std.fmt.FormatOptions,
+        writer: anytype,
+    ) !void {
+        _ = fmt;
+        _ = options;
+        try writer.writeAll(@tagName(reg));
     }
 };
 
@@ -291,14 +373,24 @@ pub const VType = packed struct(u8) {
     vma: bool,
 };
 
-const VSew = enum(u3) {
+pub const VSew = enum(u3) {
     @"8" = 0b000,
     @"16" = 0b001,
     @"32" = 0b010,
     @"64" = 0b011,
+
+    pub fn fromBits(bits: u64) ?VSew {
+        return switch (bits) {
+            8 => .@"8",
+            16 => .@"16",
+            32 => .@"32",
+            64 => .@"64",
+            else => null,
+        };
+    }
 };
 
-const VlMul = enum(u3) {
+pub const VlMul = enum(u3) {
     mf8 = 0b101,
     mf4 = 0b110,
     mf2 = 0b111,

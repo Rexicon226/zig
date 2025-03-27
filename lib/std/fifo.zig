@@ -2,6 +2,7 @@
 // Usually used for e.g. byte buffers
 
 const std = @import("std");
+const builtin = @import("builtin");
 const math = std.math;
 const mem = std.mem;
 const Allocator = mem.Allocator;
@@ -28,7 +29,7 @@ pub fn LinearFifo(
     const powers_of_two = switch (buffer_type) {
         .Static => std.math.isPowerOfTwo(buffer_type.Static),
         .Slice => false, // Any size slice could be passed in
-        .Dynamic => true, // This could be configurable in future
+        .Dynamic => !(builtin.zig_backend == .stage2_riscv64), // This could be configurable in future
     };
 
     return struct {
@@ -103,8 +104,10 @@ pub fn LinearFifo(
                 }
             }
             { // set unused area to undefined
-                const unused = mem.sliceAsBytes(self.buf[self.count..]);
-                @memset(unused, undefined);
+                if (builtin.zig_backend != .stage2_riscv64) {
+                    const unused = mem.sliceAsBytes(self.buf[self.count..]);
+                    @memset(unused, undefined);
+                }
             }
         }
 

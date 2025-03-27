@@ -14,7 +14,7 @@ result_relocs_len: u8 = undefined,
 result_insts: [
     @max(
         1, // non-pseudo instruction
-        abi.Registers.all_preserved.len, // spill / restore regs,
+        abi.Registers.all_callee_preserved.len, // spill / restore regs,
     )
 ]Instruction = undefined,
 result_relocs: [1]Reloc = undefined,
@@ -70,6 +70,27 @@ pub fn lowerMir(lower: *Lower, index: Mir.Inst.Index, options: struct {
         .pseudo_dead,
         => {},
 
+        .pseudo_large_addi => {
+            const i_type = inst.data.i_type;
+            if (i_type.imm12.cast(i12)) |casted| {
+                try lower.emit(.addi, &.{
+                    .{ .reg = i_type.rd },
+                    .{ .reg = i_type.rs1 },
+                    .{ .imm = .s(casted) },
+                });
+            } else {
+                try lower.matInt(
+                    .scratch,
+                    i_type.imm12,
+                );
+                try lower.emit(.add, &.{
+                    .{ .reg = i_type.rd },
+                    .{ .reg = i_type.rs1 },
+                    .{ .reg = .scratch },
+                });
+            }
+        },
+
         .pseudo_load_rm, .pseudo_store_rm => {
             const rm = inst.data.rm;
 
@@ -89,31 +110,57 @@ pub fn lowerMir(lower: *Lower, index: Mir.Inst.Index, options: struct {
                     const mnem: Mnemonic = switch (dest_reg_class) {
                         .int => switch (src_size) {
                             .byte => if (unsigned) .lbu else .lb,
-                            .hword => if (unsigned) .lhu else .lh,
+                            .half => if (unsigned) .lhu else .lh,
                             .word => if (unsigned) .lwu else .lw,
-                            .dword => .ld,
+                            .double => .ld,
+                            .none => unreachable,
                         },
                         .float => switch (src_size) {
                             .byte => unreachable, // Zig does not support 8-bit floats
-                            .hword => return lower.fail("TODO: lowerMir pseudo_load_rm support 16-bit floats", .{}),
+                            .half => return lower.fail("TODO: lowerMir pseudo_load_rm support 16-bit floats", .{}),
                             .word => .flw,
-                            .dword => .fld,
+                            .double => .fld,
+                            .none => unreachable,
                         },
                         .vector => switch (src_size) {
                             .byte => .vle8v,
-                            .hword => .vle32v,
+                            .half => .vle32v,
                             .word => .vle32v,
-                            .dword => .vle64v,
+                            .double => .vle64v,
+                            .none => unreachable,
                         },
                     };
 
                     switch (dest_reg_class) {
                         .int, .float => {
-                            try lower.emit(mnem, &.{
-                                .{ .reg = rm.r },
-                                .{ .reg = frame_loc.base },
-                                .{ .imm = Immediate.s(frame_loc.disp) },
-                            });
+                            const disp = frame_loc.disp;
+                            if (std.math.minInt(i12) <= disp and disp <= std.math.maxInt(i12)) {
+                                // load rm.r disp(base)
+                                try lower.emit(mnem, &.{
+                                    .{ .reg = rm.r },
+                                    .{ .reg = frame_loc.base },
+                                    .{ .imm = Immediate.s(frame_loc.disp) },
+                                });
+                            } else {
+                                // load scratch $disp
+                                // add scratch, base, scratch
+                                // load rm.r 0(scratch)
+                                try lower.matInt(
+                                    .scratch,
+                                    Immediate.s(frame_loc.disp),
+                                );
+                                try lower.emit(.add, &.{
+                                    .{ .reg = .scratch },
+                                    .{ .reg = frame_loc.base },
+                                    .{ .reg = .scratch },
+                                });
+
+                                try lower.emit(mnem, &.{
+                                    .{ .reg = rm.r },
+                                    .{ .reg = .scratch },
+                                    .{ .imm = Immediate.s(0) },
+                                });
+                            }
                         },
                         .vector => {
                             assert(frame_loc.disp == 0);
@@ -134,31 +181,56 @@ pub fn lowerMir(lower: *Lower, index: Mir.Inst.Index, options: struct {
                     const mnem: Mnemonic = switch (src_reg_class) {
                         .int => switch (dest_size) {
                             .byte => .sb,
-                            .hword => .sh,
+                            .half => .sh,
                             .word => .sw,
-                            .dword => .sd,
+                            .double => .sd,
+                            .none => unreachable,
                         },
                         .float => switch (dest_size) {
                             .byte => unreachable, // Zig does not support 8-bit floats
-                            .hword => return lower.fail("TODO: lowerMir pseudo_store_rm support 16-bit floats", .{}),
+                            .half => return lower.fail("TODO: lowerMir pseudo_store_rm support 16-bit floats", .{}),
                             .word => .fsw,
-                            .dword => .fsd,
+                            .double => .fsd,
+                            .none => unreachable,
                         },
                         .vector => switch (dest_size) {
                             .byte => .vse8v,
-                            .hword => .vse16v,
+                            .half => .vse16v,
                             .word => .vse32v,
-                            .dword => .vse64v,
+                            .double => .vse64v,
+                            .none => unreachable,
                         },
                     };
 
                     switch (src_reg_class) {
                         .int, .float => {
-                            try lower.emit(mnem, &.{
-                                .{ .reg = frame_loc.base },
-                                .{ .reg = rm.r },
-                                .{ .imm = Immediate.s(frame_loc.disp) },
-                            });
+                            const disp = frame_loc.disp;
+                            if (std.math.minInt(i12) <= disp and disp <= std.math.maxInt(i12)) {
+                                // store rm.r disp(base)
+                                try lower.emit(mnem, &.{
+                                    .{ .reg = frame_loc.base },
+                                    .{ .reg = rm.r },
+                                    .{ .imm = Immediate.s(frame_loc.disp) },
+                                });
+                            } else {
+                                // store scratch $disp
+                                // add scratch, base, scratch
+                                // store rm.r 0(scratch)
+                                try lower.matInt(
+                                    .scratch,
+                                    Immediate.s(frame_loc.disp),
+                                );
+                                try lower.emit(.add, &.{
+                                    .{ .reg = .scratch },
+                                    .{ .reg = frame_loc.base },
+                                    .{ .reg = .scratch },
+                                });
+                                try lower.emit(mnem, &.{
+                                    .{ .reg = .scratch },
+                                    .{ .reg = rm.r },
+                                    .{ .imm = Immediate.s(0) },
+                                });
+                            }
                         },
                         .vector => {
                             assert(frame_loc.disp == 0);
@@ -171,53 +243,6 @@ pub fn lowerMir(lower: *Lower, index: Mir.Inst.Index, options: struct {
                     }
                 },
                 else => unreachable,
-            }
-        },
-
-        .pseudo_mv => {
-            const rr = inst.data.rr;
-
-            const dst_class = rr.rd.class();
-            const src_class = rr.rs.class();
-
-            switch (src_class) {
-                .float => switch (dst_class) {
-                    .float => {
-                        try lower.emit(if (lower.hasFeature(.d)) .fsgnjnd else .fsgnjns, &.{
-                            .{ .reg = rr.rd },
-                            .{ .reg = rr.rs },
-                            .{ .reg = rr.rs },
-                        });
-                    },
-                    .int, .vector => return lower.fail("TODO: lowerMir pseudo_mv float -> {s}", .{@tagName(dst_class)}),
-                },
-                .int => switch (dst_class) {
-                    .int => {
-                        try lower.emit(.addi, &.{
-                            .{ .reg = rr.rd },
-                            .{ .reg = rr.rs },
-                            .{ .imm = Immediate.s(0) },
-                        });
-                    },
-                    .vector => {
-                        try lower.emit(.vmvvx, &.{
-                            .{ .reg = rr.rd },
-                            .{ .reg = rr.rs },
-                            .{ .reg = .x0 },
-                        });
-                    },
-                    .float => return lower.fail("TODO: lowerMir pseudo_mv int -> {s}", .{@tagName(dst_class)}),
-                },
-                .vector => switch (dst_class) {
-                    .int => {
-                        try lower.emit(.vadcvv, &.{
-                            .{ .reg = rr.rd },
-                            .{ .reg = .zero },
-                            .{ .reg = rr.rs },
-                        });
-                    },
-                    .float, .vector => return lower.fail("TODO: lowerMir pseudo_mv vector -> {s}", .{@tagName(dst_class)}),
-                },
             }
         },
 
@@ -292,11 +317,24 @@ pub fn lowerMir(lower: *Lower, index: Mir.Inst.Index, options: struct {
             else
                 .{ .base = .s0, .disp = 0 };
 
-            try lower.emit(.addi, &.{
-                .{ .reg = rm.r },
-                .{ .reg = frame.base },
-                .{ .imm = Immediate.s(frame.disp) },
-            });
+            const disp = frame.disp;
+            if (std.math.minInt(i12) <= disp and disp <= std.math.maxInt(i12)) {
+                try lower.emit(.addi, &.{
+                    .{ .reg = rm.r },
+                    .{ .reg = frame.base },
+                    .{ .imm = Immediate.s(disp) },
+                });
+            } else {
+                try lower.matInt(
+                    .scratch,
+                    Immediate.s(disp),
+                );
+                try lower.emit(.add, &.{
+                    .{ .reg = rm.r },
+                    .{ .reg = frame.base },
+                    .{ .reg = .scratch },
+                });
+            }
         },
 
         .pseudo_compare => {
@@ -555,7 +593,7 @@ fn pushPopRegList(lower: *Lower, comptime spilling: bool, reg_list: Mir.Register
     var reg_i: u31 = 0;
     while (it.next()) |i| {
         const frame = lower.mir.frame_locs.get(@intFromEnum(bits.FrameIndex.spill_frame));
-        const reg = abi.Registers.all_preserved[i];
+        const reg = abi.Registers.all_callee_preserved[i];
 
         const reg_class = reg.class();
         const load_inst: Mnemonic, const store_inst: Mnemonic = switch (reg_class) {
@@ -567,12 +605,12 @@ fn pushPopRegList(lower: *Lower, comptime spilling: bool, reg_list: Mir.Register
         if (spilling) {
             try lower.emit(store_inst, &.{
                 .{ .reg = frame.base },
-                .{ .reg = abi.Registers.all_preserved[i] },
+                .{ .reg = abi.Registers.all_callee_preserved[i] },
                 .{ .imm = Immediate.s(frame.disp + reg_i) },
             });
         } else {
             try lower.emit(load_inst, &.{
-                .{ .reg = abi.Registers.all_preserved[i] },
+                .{ .reg = abi.Registers.all_callee_preserved[i] },
                 .{ .reg = frame.base },
                 .{ .imm = Immediate.s(frame.disp + reg_i) },
             });
@@ -580,6 +618,43 @@ fn pushPopRegList(lower: *Lower, comptime spilling: bool, reg_list: Mir.Register
 
         reg_i += 8;
     }
+}
+
+/// Given the `imm`, creates a sequence of instructions for loading `imm` into `rd`.
+///
+/// This is needed because `addi` only has space for an `i12` immediate, which for some usecases,
+/// such as decrementing the stack pointer in the prologue, is not enough.
+///
+/// Based off of https://github.com/llvm/llvm-project/blob/081a66ffacfe85a37ff775addafcf3371e967328/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMatInt.cpp#L224
+fn matInt(lower: *Lower, rd: bits.Register, imm: Immediate) !void {
+    if (imm.cast(i32)) |casted| {
+        const hi20: i20 = @truncate((@as(i64, casted) + 0x800) >> 12);
+        const lo12: i12 = @truncate(casted);
+
+        var rs: bits.Register = .zero;
+        if (hi20 != 0) {
+            try lower.emit(.lui, &.{
+                .{ .reg = rd },
+                .{ .imm = .s(hi20) },
+            });
+            rs = rd;
+        }
+        if (lo12 != 0 or hi20 == 0) {
+            const mnem: Mnemonic = if (hi20 != 0) .addiw else .addi;
+            try lower.emit(mnem, &.{
+                .{ .reg = rd },
+                .{ .reg = rs },
+                .{ .imm = .s(lo12) },
+            });
+            rs = rd;
+        }
+    } else {
+        @panic("TODO");
+    }
+}
+
+fn fits(T: type, val: anytype) bool {
+    return val <= std.math.maxInt(T) and val >= std.math.minInt(T);
 }
 
 pub fn fail(lower: *Lower, comptime format: []const u8, args: anytype) Error {

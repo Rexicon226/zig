@@ -355,7 +355,6 @@ fn testOpaque() !void {
 
 test "type info: function type info" {
     if (builtin.zig_backend == .stage2_spirv64) return error.SkipZigTest;
-    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     try testFunction();
     try comptime testFunction();

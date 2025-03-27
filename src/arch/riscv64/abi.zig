@@ -97,7 +97,7 @@ pub const SystemClass = enum { integer, float, memory, none };
 
 /// There are a maximum of 8 possible return slots. Returned values are in
 /// the beginning of the array; unused slots are filled with .none.
-pub fn classifySystem(ty: Type, zcu: *Zcu) [8]SystemClass {
+pub fn classifyCallingConvention(ty: Type, zcu: *Zcu) [8]SystemClass {
     var result = [1]SystemClass{.none} ** 8;
     const memory_class = [_]SystemClass{
         .memory, .none, .none, .none,
@@ -121,8 +121,7 @@ pub fn classifySystem(ty: Type, zcu: *Zcu) [8]SystemClass {
         },
         .optional => {
             if (ty.isPtrLikeOptional(zcu)) {
-                result[0] = .integer;
-                return result;
+                return classifyCallingConvention(ty.optionalChild(zcu), zcu);
             }
             return memory_class;
         },
@@ -200,7 +199,7 @@ pub fn classifySystem(ty: Type, zcu: *Zcu) [8]SystemClass {
             // but we haven't implemented seperating vector registers into register_pairs
             return memory_class;
         },
-        else => |bad_ty| std.debug.panic("classifySystem {s}", .{@tagName(bad_ty)}),
+        else => |bad_ty| std.debug.panic("classifyCallingConvention {s}", .{@tagName(bad_ty)}),
     }
 }
 
@@ -227,7 +226,7 @@ fn classifyStruct(
                 continue;
             }
         }
-        const field_class = std.mem.sliceTo(&classifySystem(field_ty, zcu), .none);
+        const field_class = std.mem.sliceTo(&classifyCallingConvention(field_ty, zcu), .none);
         const field_size = field_ty.abiSize(zcu);
 
         combine: {
@@ -273,7 +272,8 @@ pub const RegisterClass = enum {
 };
 
 pub const Registers = struct {
-    pub const all_preserved = Integer.callee_preserved_regs ++ Float.callee_preserved_regs;
+    pub const all_callee_preserved = Integer.callee_preserved_regs ++ Float.callee_preserved_regs;
+    pub const all_caller_preserved = Integer.caller_preserved_regs ++ Float.caller_preserved_regs;
 
     pub const Integer = struct {
         // zig fmt: off
@@ -288,6 +288,11 @@ pub const Registers = struct {
             .s1, .s2, .s3, .s4, .s5, .s6, .s7, .s8, .s9, .s10, .s11,
         };
 
+        pub const caller_preserved_regs = [_]Register{
+            // .ra is omitted since we preserve it in the prologue
+            .t0, .t1, .t2, .a0, .a1, .a2, .a3, .a4, .a5, .a6, .a7,
+        };
+
         pub const function_arg_regs = [_]Register{
             .a0, .a1, .a2, .a3, .a4, .a5, .a6, .a7,
         };
@@ -297,7 +302,9 @@ pub const Registers = struct {
         };
 
         pub const temporary_regs = [_]Register{
-            .t0, .t1, .t2, .t3, .t4, .t5, .t6,
+            // .t6 is omitted to be used internally as a scratch register
+            // to simplify some patterns.
+            .t0, .t1, .t2, .t3, .t4, .t5,
         };
 
         pub const all_regs = callee_preserved_regs ++ function_arg_regs ++ temporary_regs;
@@ -313,6 +320,11 @@ pub const Registers = struct {
 
         pub const callee_preserved_regs = [_]Register{
             .fs0, .fs1, .fs2, .fs3, .fs4, .fs5, .fs6, .fs7, .fs8, .fs9, .fs10, .fs11,
+        };
+
+        pub const caller_preserved_regs = [_]Register{
+            .ft0, .ft1, .ft2, .ft3, .ft4, .ft5, .ft6, .ft7, .ft8, .ft9, .ft10, .ft11,
+            .fa0, .fa1, .fa2, .fa3, .fa4, .fa5, .fa6, .fa7,
         };
 
         pub const function_arg_regs = [_]Register{

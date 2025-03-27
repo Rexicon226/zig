@@ -72,7 +72,13 @@ pub const Message = struct {
         index: u32,
         flags: Flags,
 
-        pub const Flags = packed struct(u32) {
+        pub const Flags = if (builtin.zig_backend == .stage2_riscv64) extern struct {
+            fail: bool,
+            skip: bool,
+            leak: bool,
+            fuzz: bool,
+            log_err_count: u32 = 0,
+        } else packed struct(u32) {
             fail: bool,
             skip: bool,
             leak: bool,

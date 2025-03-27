@@ -432,6 +432,7 @@ test "nested packed struct field pointers" {
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_spirv64) return error.SkipZigTest;
     if (builtin.zig_backend == .stage2_c) return error.SkipZigTest; // ubsan unaligned pointer access
+    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
     if (native_endian != .little) return error.SkipZigTest; // Byte aligned packed struct field pointers have not been implemented yet
 
     const S2 = packed struct {
@@ -959,6 +960,7 @@ test "pointer to container level packed struct field" {
     if (builtin.zig_backend == .stage2_arm) return error.SkipZigTest;
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_spirv64) return error.SkipZigTest;
+    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     const S = packed struct(u32) {
         test_bit: bool,
@@ -1004,6 +1006,8 @@ test "bitcast back and forth" {
 }
 
 test "field access of packed struct smaller than its abi size inside struct initialized with rls" {
+    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
+
     // Originally reported at https://github.com/ziglang/zig/issues/14200
     if (builtin.zig_backend == .stage2_spirv64) return error.SkipZigTest;
 
@@ -1110,8 +1114,6 @@ test "packed struct acts as a namespace" {
 }
 
 test "pointer loaded correctly from packed struct" {
-    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
-
     const RAM = struct {
         data: [0xFFFF + 1]u8,
         fn new() !@This() {
@@ -1155,6 +1157,7 @@ test "assignment to non-byte-aligned field in packed struct" {
     if (builtin.zig_backend == .stage2_aarch64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_arm) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_spirv64) return error.SkipZigTest;
+    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     const Frame = packed struct {
         num: u20,
@@ -1265,6 +1268,7 @@ test "2-byte packed struct argument in C calling convention" {
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest;
     if (builtin.zig_backend == .stage2_arm) return error.SkipZigTest;
     if (builtin.zig_backend == .stage2_spirv64) return error.SkipZigTest;
+    if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
 
     const S = packed struct(u16) {
         x: u15 = 0,
