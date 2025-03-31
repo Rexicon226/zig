@@ -195,10 +195,10 @@ pub const Node = struct {
             };
         }
 
-        const free_index = @atomicRmw(u32, &global_progress.node_end_index, .Add, 1, .monotonic);
+        const free_index = @atomicRmw(u32, &global_progress.node_end_index, .add, 1, .monotonic);
         if (free_index >= global_progress.node_storage.len) {
             // Ran out of node storage memory. Progress for this node will not be tracked.
-            _ = @atomicRmw(u32, &global_progress.node_end_index, .Sub, 1, .monotonic);
+            _ = @atomicRmw(u32, &global_progress.node_end_index, .sub, 1, .monotonic);
             return Node.none;
         }
 
@@ -209,7 +209,7 @@ pub const Node = struct {
     pub fn completeOne(n: Node) void {
         const index = n.index.unwrap() orelse return;
         const storage = storageByIndex(index);
-        _ = @atomicRmw(u32, &storage.completed_count, .Add, 1, .monotonic);
+        _ = @atomicRmw(u32, &storage.completed_count, .add, 1, .monotonic);
     }
 
     /// Thread-safe.
@@ -232,7 +232,7 @@ pub const Node = struct {
     pub fn increaseEstimatedTotalItems(n: Node, count: usize) void {
         const index = n.index.unwrap() orelse return;
         const storage = storageByIndex(index);
-        _ = @atomicRmw(u32, &storage.estimated_total_count, .Add, std.math.lossyCast(u32, count), .monotonic);
+        _ = @atomicRmw(u32, &storage.estimated_total_count, .add, std.math.lossyCast(u32, count), .monotonic);
     }
 
     /// Finish a started `Node`. Thread-safe.
@@ -244,7 +244,7 @@ pub const Node = struct {
         const index = n.index.unwrap() orelse return;
         const parent_ptr = parentByIndex(index);
         if (parent_ptr.unwrap()) |parent_index| {
-            _ = @atomicRmw(u32, &storageByIndex(parent_index).completed_count, .Add, 1, .monotonic);
+            _ = @atomicRmw(u32, &storageByIndex(parent_index).completed_count, .add, 1, .monotonic);
             @atomicStore(Node.Parent, parent_ptr, .unused, .seq_cst);
 
             const freelist_head = &global_progress.node_freelist_first;

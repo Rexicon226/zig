@@ -1277,7 +1277,7 @@ pub const Cpu = struct {
                     const V = @Vector(usize_count, usize);
                     const set_v: V = set.ints;
                     const other_v: V = other_set.ints;
-                    return @reduce(.And, (set_v & other_v) == other_v);
+                    return @reduce(.@"and", (set_v & other_v) == other_v);
                 }
             }
         };

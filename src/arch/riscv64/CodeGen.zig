@@ -7633,13 +7633,13 @@ fn airAtomicRmw(func: *Func, inst: Air.Inst.Index) !void {
 
                 const mnem: Mnemonic = switch (op) {
                     // zig fmt: off
-                .Xchg => if (is_d) .amoswapd  else .amoswapw,
-                .Add  => if (is_d) .amoaddd   else .amoaddw,
-                .And  => if (is_d) .amoandd   else .amoandw,
-                .Or   => if (is_d) .amoord    else .amoorw,
-                .Xor  => if (is_d) .amoxord   else .amoxorw,
-                .Max  => if (is_d) if (is_un) .amomaxud else .amomaxd else if (is_un) .amomaxuw else .amomaxw,
-                .Min  => if (is_d) if (is_un) .amominud else .amomind else if (is_un) .amominuw else .amominw,
+                .xchg => if (is_d) .amoswapd  else .amoswapw,
+                .add  => if (is_d) .amoaddd   else .amoaddw,
+                .@"and"  => if (is_d) .amoandd   else .amoandw,
+                .@"or"   => if (is_d) .amoord    else .amoorw,
+                .xor  => if (is_d) .amoxord   else .amoxorw,
+                .max  => if (is_d) if (is_un) .amomaxud else .amomaxd else if (is_un) .amomaxuw else .amomaxw,
+                .min  => if (is_d) if (is_un) .amominud else .amomind else if (is_un) .amominuw else .amominw,
                 else => return func.fail("TODO: airAtomicRmw amo {s}", .{@tagName(op)}),
                 // zig fmt: on
                 };
@@ -7672,11 +7672,11 @@ fn airAtomicRmw(func: *Func, inst: Air.Inst.Index) !void {
                 defer func.register_manager.unlockReg(after_lock);
 
                 switch (op) {
-                    .Add, .Sub => |tag| {
+                    .add, .sub => |tag| {
                         _ = try func.genBinOp(
                             switch (tag) {
-                                .Add => .add,
-                                .Sub => .sub,
+                                .add => .add,
+                                .sub => .sub,
                                 else => unreachable,
                             },
                             .{ .register = result_reg },

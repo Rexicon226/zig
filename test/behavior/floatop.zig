@@ -316,12 +316,12 @@ fn testCmpVector(comptime T: type) !void {
             const lhs_order = if (lhs_i < 5) lhs_i else lhs_i - 2;
             const rhs_order = if (rhs_i < 5) rhs_i else rhs_i - 2;
             const lhs_v: @Vector(4, T) = .{ lhs, lhs, lhs, lhs };
-            try expect(@reduce(.And, (lhs_v == rhs_v)) == (no_nan and lhs_order == rhs_order));
-            try expect(@reduce(.And, (lhs_v != rhs_v)) == !(no_nan and lhs_order == rhs_order));
-            try expect(@reduce(.And, (lhs_v < rhs_v)) == (no_nan and lhs_order < rhs_order));
-            try expect(@reduce(.And, (lhs_v > rhs_v)) == (no_nan and lhs_order > rhs_order));
-            try expect(@reduce(.And, (lhs_v <= rhs_v)) == (no_nan and lhs_order <= rhs_order));
-            try expect(@reduce(.And, (lhs_v >= rhs_v)) == (no_nan and lhs_order >= rhs_order));
+            try expect(@reduce(.@"and", (lhs_v == rhs_v)) == (no_nan and lhs_order == rhs_order));
+            try expect(@reduce(.@"and", (lhs_v != rhs_v)) == !(no_nan and lhs_order == rhs_order));
+            try expect(@reduce(.@"and", (lhs_v < rhs_v)) == (no_nan and lhs_order < rhs_order));
+            try expect(@reduce(.@"and", (lhs_v > rhs_v)) == (no_nan and lhs_order > rhs_order));
+            try expect(@reduce(.@"and", (lhs_v <= rhs_v)) == (no_nan and lhs_order <= rhs_order));
+            try expect(@reduce(.@"and", (lhs_v >= rhs_v)) == (no_nan and lhs_order >= rhs_order));
         }
     }
 }

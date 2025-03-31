@@ -631,7 +631,7 @@ pub fn parseTimeDigits(text: *const [2]u8, min: u8, max: u8) !u8 {
         const nn: @Vector(2, u16) = .{ text[0], text[1] };
         const zero: @Vector(2, u16) = .{ '0', '0' };
         const mm: @Vector(2, u16) = .{ 10, 1 };
-        break :result @reduce(.Add, (nn -% zero) *% mm);
+        break :result @reduce(.add, (nn -% zero) *% mm);
     } else std.fmt.parseInt(u8, text, 10) catch return error.CertificateTimeInvalid;
     if (result < min) return error.CertificateTimeInvalid;
     if (result > max) return error.CertificateTimeInvalid;
@@ -655,7 +655,7 @@ pub fn parseYear4(text: *const [4]u8) !u16 {
         const nnnn: @Vector(4, u32) = .{ text[0], text[1], text[2], text[3] };
         const zero: @Vector(4, u32) = .{ '0', '0', '0', '0' };
         const mmmm: @Vector(4, u32) = .{ 1000, 100, 10, 1 };
-        break :result @reduce(.Add, (nnnn -% zero) *% mmmm);
+        break :result @reduce(.add, (nnnn -% zero) *% mmmm);
     } else std.fmt.parseInt(u16, text, 10) catch return error.CertificateTimeInvalid;
     if (result > 9999) return error.CertificateTimeInvalid;
     return @truncate(result);

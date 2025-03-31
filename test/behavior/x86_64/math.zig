@@ -156,7 +156,7 @@ pub noinline fn checkExpected(expected: anytype, actual: @TypeOf(expected), comp
     };
     if (switch (@typeInfo(Expected)) {
         else => unexpected,
-        .vector => @reduce(.Or, unexpected),
+        .vector => @reduce(.@"or", unexpected),
     }) return error.Unexpected;
 }
 test checkExpected {

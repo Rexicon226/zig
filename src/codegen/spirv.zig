@@ -4050,11 +4050,11 @@ const NavGen = struct {
         const first = try self.extractVectorComponent(scalar_ty, operand, 0);
 
         switch (reduce.operation) {
-            .Min, .Max => |op| {
+            .min, .max => |op| {
                 var result = Temporary.init(scalar_ty, first);
                 const cmp_op: MinMax = switch (op) {
-                    .Max => .max,
-                    .Min => .min,
+                    .max => .max,
+                    .min => .min,
                     else => unreachable,
                 };
                 for (1..len) |i| {
@@ -4074,22 +4074,22 @@ const NavGen = struct {
 
         const opcode: Opcode = switch (info.class) {
             .bool => switch (reduce.operation) {
-                .And => .OpLogicalAnd,
-                .Or => .OpLogicalOr,
-                .Xor => .OpLogicalNotEqual,
+                .@"and" => .OpLogicalAnd,
+                .@"or" => .OpLogicalOr,
+                .xor => .OpLogicalNotEqual,
                 else => unreachable,
             },
             .strange_integer, .integer => switch (reduce.operation) {
-                .And => .OpBitwiseAnd,
-                .Or => .OpBitwiseOr,
-                .Xor => .OpBitwiseXor,
-                .Add => .OpIAdd,
-                .Mul => .OpIMul,
+                .@"and" => .OpBitwiseAnd,
+                .@"or" => .OpBitwiseOr,
+                .xor => .OpBitwiseXor,
+                .add => .OpIAdd,
+                .mul => .OpIMul,
                 else => unreachable,
             },
             .float => switch (reduce.operation) {
-                .Add => .OpFAdd,
-                .Mul => .OpFMul,
+                .add => .OpFAdd,
+                .mul => .OpFMul,
                 else => unreachable,
             },
             .composite_integer => unreachable, // TODO

@@ -6742,7 +6742,7 @@ fn airAtomicRmw(f: *Function, inst: Air.Inst.Index) !CValue {
     const use_atomic = switch (extra.op()) {
         else => true,
         // These are missing from stdatomic.h, so no atomic types unless a fallback is used.
-        .Nand, .Min, .Max => is_float or is_128,
+        .nand, .min, .max => is_float or is_128,
     };
     if (use_atomic) try writer.writeAll("zig_atomic(");
     try f.renderType(writer, ty);
@@ -7204,25 +7204,25 @@ fn airReduce(f: *Function, inst: Air.Inst.Index) !CValue {
         infix: []const u8,
         ternary: []const u8,
     } = switch (reduce.operation) {
-        .And => if (use_operator) .{ .infix = " &= " } else .{ .builtin = .{ .operation = "and" } },
-        .Or => if (use_operator) .{ .infix = " |= " } else .{ .builtin = .{ .operation = "or" } },
-        .Xor => if (use_operator) .{ .infix = " ^= " } else .{ .builtin = .{ .operation = "xor" } },
-        .Min => switch (scalar_ty.zigTypeTag(zcu)) {
+        .@"and" => if (use_operator) .{ .infix = " &= " } else .{ .builtin = .{ .operation = "and" } },
+        .@"or" => if (use_operator) .{ .infix = " |= " } else .{ .builtin = .{ .operation = "or" } },
+        .xor => if (use_operator) .{ .infix = " ^= " } else .{ .builtin = .{ .operation = "xor" } },
+        .min => switch (scalar_ty.zigTypeTag(zcu)) {
             .int => if (use_operator) .{ .ternary = " < " } else .{ .builtin = .{ .operation = "min" } },
             .float => .{ .builtin = .{ .operation = "min" } },
             else => unreachable,
         },
-        .Max => switch (scalar_ty.zigTypeTag(zcu)) {
+        .max => switch (scalar_ty.zigTypeTag(zcu)) {
             .int => if (use_operator) .{ .ternary = " > " } else .{ .builtin = .{ .operation = "max" } },
             .float => .{ .builtin = .{ .operation = "max" } },
             else => unreachable,
         },
-        .Add => switch (scalar_ty.zigTypeTag(zcu)) {
+        .add => switch (scalar_ty.zigTypeTag(zcu)) {
             .int => if (use_operator) .{ .infix = " += " } else .{ .builtin = .{ .operation = "addw", .info = .bits } },
             .float => .{ .builtin = .{ .operation = "add" } },
             else => unreachable,
         },
-        .Mul => switch (scalar_ty.zigTypeTag(zcu)) {
+        .mul => switch (scalar_ty.zigTypeTag(zcu)) {
             .int => if (use_operator) .{ .infix = " *= " } else .{ .builtin = .{ .operation = "mulw", .info = .bits } },
             .float => .{ .builtin = .{ .operation = "mul" } },
             else => unreachable,
@@ -7246,12 +7246,12 @@ fn airReduce(f: *Function, inst: Air.Inst.Index) !CValue {
     try writer.writeAll(" = ");
 
     try f.object.dg.renderValue(writer, switch (reduce.operation) {
-        .Or, .Xor => switch (scalar_ty.zigTypeTag(zcu)) {
+        .@"or", .xor => switch (scalar_ty.zigTypeTag(zcu)) {
             .bool => Value.false,
             .int => try pt.intValue(scalar_ty, 0),
             else => unreachable,
         },
-        .And => switch (scalar_ty.zigTypeTag(zcu)) {
+        .@"and" => switch (scalar_ty.zigTypeTag(zcu)) {
             .bool => Value.true,
             .int => switch (scalar_ty.intInfo(zcu).signedness) {
                 .unsigned => try scalar_ty.maxIntScalar(pt, scalar_ty),
@@ -7259,23 +7259,23 @@ fn airReduce(f: *Function, inst: Air.Inst.Index) !CValue {
             },
             else => unreachable,
         },
-        .Add => switch (scalar_ty.zigTypeTag(zcu)) {
+        .add => switch (scalar_ty.zigTypeTag(zcu)) {
             .int => try pt.intValue(scalar_ty, 0),
             .float => try pt.floatValue(scalar_ty, 0.0),
             else => unreachable,
         },
-        .Mul => switch (scalar_ty.zigTypeTag(zcu)) {
+        .mul => switch (scalar_ty.zigTypeTag(zcu)) {
             .int => try pt.intValue(scalar_ty, 1),
             .float => try pt.floatValue(scalar_ty, 1.0),
             else => unreachable,
         },
-        .Min => switch (scalar_ty.zigTypeTag(zcu)) {
+        .min => switch (scalar_ty.zigTypeTag(zcu)) {
             .bool => Value.true,
             .int => try scalar_ty.maxIntScalar(pt, scalar_ty),
             .float => try pt.floatValue(scalar_ty, std.math.nan(f128)),
             else => unreachable,
         },
-        .Max => switch (scalar_ty.zigTypeTag(zcu)) {
+        .max => switch (scalar_ty.zigTypeTag(zcu)) {
             .bool => Value.false,
             .int => try scalar_ty.minIntScalar(pt, scalar_ty),
             .float => try pt.floatValue(scalar_ty, std.math.nan(f128)),
@@ -7776,15 +7776,15 @@ fn toCallingConvention(cc: std.builtin.CallingConvention, zcu: *Zcu) ?[]const u8
 
 fn toAtomicRmwSuffix(order: std.builtin.AtomicRmwOp) []const u8 {
     return switch (order) {
-        .Xchg => "xchg",
-        .Add => "add",
-        .Sub => "sub",
-        .And => "and",
-        .Nand => "nand",
-        .Or => "or",
-        .Xor => "xor",
-        .Max => "max",
-        .Min => "min",
+        .xchg => "xchg",
+        .add => "add",
+        .sub => "sub",
+        .@"and" => "and",
+        .nand => "nand",
+        .@"or" => "or",
+        .xor => "xor",
+        .max => "max",
+        .min => "min",
     };
 }
 

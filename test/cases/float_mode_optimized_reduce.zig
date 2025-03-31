@@ -3,7 +3,7 @@ pub fn main() void {
     _ = &a;
 
     @setFloatMode(.optimized);
-    var b = @reduce(.Add, a);
+    var b = @reduce(.add, a);
     _ = &b;
 }
 

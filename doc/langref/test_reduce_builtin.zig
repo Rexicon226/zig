@@ -7,7 +7,7 @@ test "vector @reduce" {
     const result = value > @as(V, @splat(0));
     // result is { true, false, true, false };
     try comptime expect(@TypeOf(result) == @Vector(4, bool));
-    const is_all_true = @reduce(.And, result);
+    const is_all_true = @reduce(.@"and", result);
     try comptime expect(@TypeOf(is_all_true) == bool);
     try expect(is_all_true == false);
 }

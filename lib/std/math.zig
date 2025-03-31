@@ -524,7 +524,7 @@ pub fn clamp(val: anytype, lower: anytype, upper: anytype) @TypeOf(val, lower, u
     switch (@typeInfo(T)) {
         .int, .float, .comptime_int, .comptime_float => assert(lower <= upper),
         .vector => |vinfo| switch (@typeInfo(vinfo.child)) {
-            .int, .float => assert(@reduce(.And, lower <= upper)),
+            .int, .float => assert(@reduce(.@"and", lower <= upper)),
             else => @compileError("Expected vector of ints or floats, found " ++ @typeName(T)),
         },
         else => @compileError("Expected an int, float or vector of one, found " ++ @typeName(T)),
@@ -544,7 +544,7 @@ test clamp {
     try testing.expect(std.math.clamp(@as(f32, -127.5), @as(f32, -200), @as(f32, -100)) == -127.5);
 
     // Vector
-    try testing.expect(@reduce(.And, std.math.clamp(@as(@Vector(3, f32), .{ 1.4, 15.23, 28.3 }), @as(@Vector(3, f32), .{ 9.8, 13.2, 15.6 }), @as(@Vector(3, f32), .{ 15.2, 22.8, 26.3 })) == @as(@Vector(3, f32), .{ 9.8, 15.23, 26.3 })));
+    try testing.expect(@reduce(.@"and", std.math.clamp(@as(@Vector(3, f32), .{ 1.4, 15.23, 28.3 }), @as(@Vector(3, f32), .{ 9.8, 13.2, 15.6 }), @as(@Vector(3, f32), .{ 15.2, 22.8, 26.3 })) == @as(@Vector(3, f32), .{ 9.8, 15.23, 26.3 })));
 
     // Mix of comptime and non-comptime
     var i: i32 = 1;

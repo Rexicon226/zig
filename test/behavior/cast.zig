@@ -2723,7 +2723,7 @@ test "bitcast vector" {
 
     const zerox32: u8x32 = [_]u8{0} ** 32;
     const bigsum: u32x8 = @bitCast(zerox32);
-    try std.testing.expectEqual(0, @reduce(.Add, bigsum));
+    try std.testing.expectEqual(0, @reduce(.add, bigsum));
 }
 
 test "peer type resolution: slice of sentinel-terminated array" {

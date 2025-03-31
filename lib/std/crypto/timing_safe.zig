@@ -30,7 +30,7 @@ pub fn eql(comptime T: type, a: T, b: T) bool {
             if (@typeInfo(C) != .int) {
                 @compileError("Elements to be compared must be integers");
             }
-            const acc = @reduce(.Or, a ^ b);
+            const acc = @reduce(.@"or", a ^ b);
             const s = @typeInfo(C).int.bits;
             const Cu = std.meta.Int(.unsigned, s);
             const Cext = std.meta.Int(.unsigned, s + 1);

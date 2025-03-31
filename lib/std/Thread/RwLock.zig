@@ -183,7 +183,7 @@ pub const DefaultRwLock = struct {
         if (rwl.mutex.tryLock()) {
             const state = @atomicLoad(usize, &rwl.state, .seq_cst);
             if (state & READER_MASK == 0) {
-                _ = @atomicRmw(usize, &rwl.state, .Or, IS_WRITING, .seq_cst);
+                _ = @atomicRmw(usize, &rwl.state, .@"or", IS_WRITING, .seq_cst);
                 return true;
             }
 
@@ -194,16 +194,16 @@ pub const DefaultRwLock = struct {
     }
 
     pub fn lock(rwl: *DefaultRwLock) void {
-        _ = @atomicRmw(usize, &rwl.state, .Add, WRITER, .seq_cst);
+        _ = @atomicRmw(usize, &rwl.state, .add, WRITER, .seq_cst);
         rwl.mutex.lock();
 
-        const state = @atomicRmw(usize, &rwl.state, .Add, IS_WRITING -% WRITER, .seq_cst);
+        const state = @atomicRmw(usize, &rwl.state, .add, IS_WRITING -% WRITER, .seq_cst);
         if (state & READER_MASK != 0)
             rwl.semaphore.wait();
     }
 
     pub fn unlock(rwl: *DefaultRwLock) void {
-        _ = @atomicRmw(usize, &rwl.state, .And, ~IS_WRITING, .seq_cst);
+        _ = @atomicRmw(usize, &rwl.state, .@"and", ~IS_WRITING, .seq_cst);
         rwl.mutex.unlock();
     }
 
@@ -221,7 +221,7 @@ pub const DefaultRwLock = struct {
         }
 
         if (rwl.mutex.tryLock()) {
-            _ = @atomicRmw(usize, &rwl.state, .Add, READER, .seq_cst);
+            _ = @atomicRmw(usize, &rwl.state, .add, READER, .seq_cst);
             rwl.mutex.unlock();
             return true;
         }
@@ -243,12 +243,12 @@ pub const DefaultRwLock = struct {
         }
 
         rwl.mutex.lock();
-        _ = @atomicRmw(usize, &rwl.state, .Add, READER, .seq_cst);
+        _ = @atomicRmw(usize, &rwl.state, .add, READER, .seq_cst);
         rwl.mutex.unlock();
     }
 
     pub fn unlockShared(rwl: *DefaultRwLock) void {
-        const state = @atomicRmw(usize, &rwl.state, .Sub, READER, .seq_cst);
+        const state = @atomicRmw(usize, &rwl.state, .sub, READER, .seq_cst);
 
         if ((state & READER_MASK == READER) and (state & IS_WRITING != 0))
             rwl.semaphore.post();

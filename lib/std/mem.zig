@@ -754,7 +754,7 @@ fn eqlBytes(a: []const u8, b: []const u8) bool {
             pub const size = vec_size;
             pub const Chunk = @Vector(size, u8);
             pub inline fn isNotEqual(chunk_a: Chunk, chunk_b: Chunk) bool {
-                return @reduce(.Or, chunk_a != chunk_b);
+                return @reduce(.@"or", chunk_a != chunk_b);
             }
         }
     else
@@ -773,7 +773,7 @@ fn eqlBytes(a: []const u8, b: []const u8) bool {
             var x = @as(V, a[0 .. n / 2].*) ^ @as(V, b[0 .. n / 2].*);
             x |= @as(V, a[a.len - n / 2 ..][0 .. n / 2].*) ^ @as(V, b[a.len - n / 2 ..][0 .. n / 2].*);
             const zero: V = @splat(0);
-            return !@reduce(.Or, x != zero);
+            return !@reduce(.@"or", x != zero);
         }
     }
     // Compare inputs in chunks at a time (excluding the last chunk).
@@ -1125,7 +1125,7 @@ pub fn indexOfSentinel(comptime T: type, comptime sentinel: T, p: [*:sentinel]co
                     // Will not read past the end of a page, full block.
                     const block: Block = p[i..][0..block_len].*;
                     const matches = block == mask;
-                    if (@reduce(.Or, matches)) {
+                    if (@reduce(.@"or", matches)) {
                         return i + std.simd.firstTrue(matches).?;
                     }
 
@@ -1146,7 +1146,7 @@ pub fn indexOfSentinel(comptime T: type, comptime sentinel: T, p: [*:sentinel]co
                 while (true) {
                     const block: *const Block = @ptrCast(@alignCast(p[i..][0..block_len]));
                     const matches = block.* == mask;
-                    if (@reduce(.Or, matches)) {
+                    if (@reduce(.@"or", matches)) {
                         return i + std.simd.firstTrue(matches).?;
                     }
                     i += block_len;
@@ -1279,7 +1279,7 @@ pub fn indexOfScalarPos(comptime T: type, slice: []const T, start_index: usize, 
                     inline for (0..2) |_| {
                         const block: Block = slice[i..][0..block_len].*;
                         const matches = block == mask;
-                        if (@reduce(.Or, matches)) {
+                        if (@reduce(.@"or", matches)) {
                             return i + std.simd.firstTrue(matches).?;
                         }
                         i += block_len;
@@ -1298,7 +1298,7 @@ pub fn indexOfScalarPos(comptime T: type, slice: []const T, start_index: usize, 
                     const mask: BlockX = @splat(value);
                     const block: BlockX = slice[i..][0..block_x_len].*;
                     const matches = block == mask;
-                    if (@reduce(.Or, matches)) {
+                    if (@reduce(.@"or", matches)) {
                         return i + std.simd.firstTrue(matches).?;
                     }
                     i += block_x_len;

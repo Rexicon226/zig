@@ -10265,7 +10265,7 @@ fn intCast(
                     const is_in_range = try block.addCmpVector(operand, zero_inst, .eq);
                     const all_in_range = try block.addInst(.{
                         .tag = .reduce,
-                        .data = .{ .reduce = .{ .operand = is_in_range, .operation = .And } },
+                        .data = .{ .reduce = .{ .operand = is_in_range, .operation = .@"and" } },
                     });
                     break :ok all_in_range;
                 } else ok: {
@@ -10334,7 +10334,7 @@ fn intCast(
                         .tag = if (block.float_mode == .optimized) .reduce_optimized else .reduce,
                         .data = .{ .reduce = .{
                             .operand = is_in_range,
-                            .operation = .And,
+                            .operation = .@"and",
                         } },
                     });
                     break :ok all_in_range;
@@ -10351,7 +10351,7 @@ fn intCast(
                         .tag = if (block.float_mode == .optimized) .reduce_optimized else .reduce,
                         .data = .{ .reduce = .{
                             .operand = is_in_range,
-                            .operation = .And,
+                            .operation = .@"and",
                         } },
                     });
                     break :ok all_in_range;
@@ -10373,7 +10373,7 @@ fn intCast(
                     .tag = if (block.float_mode == .optimized) .reduce_optimized else .reduce,
                     .data = .{ .reduce = .{
                         .operand = is_in_range,
-                        .operation = .And,
+                        .operation = .@"and",
                     } },
                 });
                 break :ok all_in_range;
@@ -14279,7 +14279,7 @@ fn zirShl(
                     .tag = .reduce,
                     .data = .{ .reduce = .{
                         .operand = lt,
-                        .operation = .And,
+                        .operation = .@"and",
                     } },
                 });
             } else ok: {
@@ -14307,7 +14307,7 @@ fn zirShl(
                     .tag = if (block.float_mode == .optimized) .reduce_optimized else .reduce,
                     .data = .{ .reduce = .{
                         .operand = ov_bit,
-                        .operation = .Or,
+                        .operation = .@"or",
                     } },
                 })
             else
@@ -14439,7 +14439,7 @@ fn zirShr(
                     .tag = .reduce,
                     .data = .{ .reduce = .{
                         .operand = lt,
-                        .operation = .And,
+                        .operation = .@"and",
                     } },
                 });
             } else ok: {
@@ -14458,7 +14458,7 @@ fn zirShr(
                     .tag = if (block.float_mode == .optimized) .reduce_optimized else .reduce,
                     .data = .{ .reduce = .{
                         .operand = eql,
-                        .operation = .And,
+                        .operation = .@"and",
                     } },
                 });
             } else try block.addBinOp(.cmp_eq, lhs, back);
@@ -15517,7 +15517,7 @@ fn zirDivExact(sema: *Sema, block: *Block, inst: Zir.Inst.Index) CompileError!Ai
                     },
                     .data = .{ .reduce = .{
                         .operand = eql,
-                        .operation = .And,
+                        .operation = .@"and",
                     } },
                 });
             } else {
@@ -15543,7 +15543,7 @@ fn zirDivExact(sema: *Sema, block: *Block, inst: Zir.Inst.Index) CompileError!Ai
                     .tag = .reduce,
                     .data = .{ .reduce = .{
                         .operand = eql,
-                        .operation = .And,
+                        .operation = .@"and",
                     } },
                 });
             } else {
@@ -15778,7 +15778,7 @@ fn addDivIntOverflowSafety(
             .tag = .reduce,
             .data = .{ .reduce = .{
                 .operand = try block.addBinOp(.bool_or, lhs_ok, rhs_ok),
-                .operation = .And,
+                .operation = .@"and",
             } },
         });
         try sema.addSafetyCheck(block, src, ok, .integer_overflow);
@@ -15835,7 +15835,7 @@ fn addDivByZeroSafety(
             .tag = if (is_int) .reduce else .reduce_optimized,
             .data = .{ .reduce = .{
                 .operand = ok,
-                .operation = .And,
+                .operation = .@"and",
             } },
         });
     } else ok: {
@@ -16528,7 +16528,7 @@ fn analyzeArithmetic(
                         .tag = if (block.float_mode == .optimized) .reduce_optimized else .reduce,
                         .data = .{ .reduce = .{
                             .operand = ov_bit,
-                            .operation = .Or,
+                            .operation = .@"or",
                         } },
                     })
                 else
@@ -22349,7 +22349,7 @@ fn zirIntFromFloat(sema: *Sema, block: *Block, inst: Zir.Inst.Index) CompileErro
                     .tag = .reduce,
                     .data = .{ .reduce = .{
                         .operand = ok,
-                        .operation = .And,
+                        .operation = .@"and",
                     } },
                 });
             } else ok: {
@@ -22498,7 +22498,7 @@ fn zirPtrFromInt(sema: *Sema, block: *Block, inst: Zir.Inst.Index) CompileError!
                         .tag = .reduce,
                         .data = .{ .reduce = .{
                             .operand = is_non_zero,
-                            .operation = .And,
+                            .operation = .@"and",
                         } },
                     });
                 } else try block.addBinOp(.cmp_neq, operand_coerced, .zero_usize);
@@ -22521,7 +22521,7 @@ fn zirPtrFromInt(sema: *Sema, block: *Block, inst: Zir.Inst.Index) CompileError!
                         .tag = .reduce,
                         .data = .{ .reduce = .{
                             .operand = is_aligned,
-                            .operation = .And,
+                            .operation = .@"and",
                         } },
                     });
                 } else try block.addBinOp(.cmp_eq, remainder, .zero_usize);
@@ -24407,13 +24407,13 @@ fn zirReduce(sema: *Sema, block: *Block, inst: Zir.Inst.Index) CompileError!Air.
 
     // Type-check depending on operation.
     switch (operation) {
-        .And, .Or, .Xor => switch (scalar_ty.zigTypeTag(zcu)) {
+        .@"and", .@"or", .xor => switch (scalar_ty.zigTypeTag(zcu)) {
             .int, .bool => {},
             else => return sema.fail(block, operand_src, "@reduce operation '{s}' requires integer or boolean operand; found '{}'", .{
                 @tagName(operation), operand_ty.fmt(pt),
             }),
         },
-        .Min, .Max, .Add, .Mul => switch (scalar_ty.zigTypeTag(zcu)) {
+        .min, .max, .add, .mul => switch (scalar_ty.zigTypeTag(zcu)) {
             .int, .float => {},
             else => return sema.fail(block, operand_src, "@reduce operation '{s}' requires integer or float operand; found '{}'", .{
                 @tagName(operation), operand_ty.fmt(pt),
@@ -24436,13 +24436,13 @@ fn zirReduce(sema: *Sema, block: *Block, inst: Zir.Inst.Index) CompileError!Air.
         while (i < vec_len) : (i += 1) {
             const elem_val = try operand_val.elemValue(pt, i);
             switch (operation) {
-                .And => accum = try accum.bitwiseAnd(elem_val, scalar_ty, sema.arena, pt),
-                .Or => accum = try accum.bitwiseOr(elem_val, scalar_ty, sema.arena, pt),
-                .Xor => accum = try accum.bitwiseXor(elem_val, scalar_ty, sema.arena, pt),
-                .Min => accum = accum.numberMin(elem_val, zcu),
-                .Max => accum = accum.numberMax(elem_val, zcu),
-                .Add => accum = try arith.addMaybeWrap(sema, scalar_ty, accum, elem_val),
-                .Mul => accum = try arith.mulMaybeWrap(sema, scalar_ty, accum, elem_val),
+                .@"and" => accum = try accum.bitwiseAnd(elem_val, scalar_ty, sema.arena, pt),
+                .@"or" => accum = try accum.bitwiseOr(elem_val, scalar_ty, sema.arena, pt),
+                .xor => accum = try accum.bitwiseXor(elem_val, scalar_ty, sema.arena, pt),
+                .min => accum = accum.numberMin(elem_val, zcu),
+                .max => accum = accum.numberMax(elem_val, zcu),
+                .add => accum = try arith.addMaybeWrap(sema, scalar_ty, accum, elem_val),
+                .mul => accum = try arith.mulMaybeWrap(sema, scalar_ty, accum, elem_val),
             }
         }
         return Air.internedToRef(accum.toIntern());
@@ -24804,15 +24804,15 @@ fn zirAtomicRmw(sema: *Sema, block: *Block, inst: Zir.Inst.Index) CompileError!A
     const op = try sema.resolveAtomicRmwOp(block, op_src, extra.operation);
 
     switch (elem_ty.zigTypeTag(zcu)) {
-        .@"enum" => if (op != .Xchg) {
-            return sema.fail(block, op_src, "@atomicRmw with enum only allowed with .Xchg", .{});
+        .@"enum" => if (op != .xchg) {
+            return sema.fail(block, op_src, "@atomicRmw with enum only allowed with .xchg", .{});
         },
-        .bool => if (op != .Xchg) {
-            return sema.fail(block, op_src, "@atomicRmw with bool only allowed with .Xchg", .{});
+        .bool => if (op != .xchg) {
+            return sema.fail(block, op_src, "@atomicRmw with bool only allowed with .xchg", .{});
         },
         .float => switch (op) {
-            .Xchg, .Add, .Sub, .Max, .Min => {},
-            else => return sema.fail(block, op_src, "@atomicRmw with float only allowed with .Xchg, .Add, .Sub, .Max, and .Min", .{}),
+            .xchg, .add, .sub, .max, .min => {},
+            else => return sema.fail(block, op_src, "@atomicRmw with float only allowed with .xchg, .add, .sub, .max, and .min", .{}),
         },
         else => {},
     }
@@ -24838,15 +24838,15 @@ fn zirAtomicRmw(sema: *Sema, block: *Block, inst: Zir.Inst.Index) CompileError!A
             const stored_val = (try sema.pointerDeref(block, ptr_src, ptr_val, ptr_ty)) orelse break :rs ptr_src;
             const new_val = switch (op) {
                 // zig fmt: off
-                .Xchg => operand_val,
-                .Add  => try arith.addMaybeWrap(sema, elem_ty, stored_val, operand_val),
-                .Sub  => try arith.subMaybeWrap(sema, elem_ty, stored_val, operand_val),
-                .And  => try stored_val.bitwiseAnd   (operand_val, elem_ty, sema.arena, pt ),
-                .Nand => try stored_val.bitwiseNand  (operand_val, elem_ty, sema.arena, pt ),
-                .Or   => try stored_val.bitwiseOr    (operand_val, elem_ty, sema.arena, pt ),
-                .Xor  => try stored_val.bitwiseXor   (operand_val, elem_ty, sema.arena, pt ),
-                .Max  =>     stored_val.numberMax    (operand_val,                      zcu),
-                .Min  =>     stored_val.numberMin    (operand_val,                      zcu),
+                .xchg => operand_val,
+                .add  => try arith.addMaybeWrap(sema, elem_ty, stored_val, operand_val),
+                .sub  => try arith.subMaybeWrap(sema, elem_ty, stored_val, operand_val),
+                .@"and"  => try stored_val.bitwiseAnd   (operand_val, elem_ty, sema.arena, pt ),
+                .nand => try stored_val.bitwiseNand  (operand_val, elem_ty, sema.arena, pt ),
+                .@"or"   => try stored_val.bitwiseOr    (operand_val, elem_ty, sema.arena, pt ),
+                .xor  => try stored_val.bitwiseXor   (operand_val, elem_ty, sema.arena, pt ),
+                .max  =>     stored_val.numberMax    (operand_val,                      zcu),
+                .min  =>     stored_val.numberMin    (operand_val,                      zcu),
                 // zig fmt: on
             };
             try sema.storePtrVal(block, src, ptr_val, new_val, elem_ty);
@@ -27146,7 +27146,7 @@ fn addSafetyCheckSentinelMismatch(
             .tag = .reduce,
             .data = .{ .reduce = .{
                 .operand = eql,
-                .operation = .And,
+                .operation = .@"and",
             } },
         });
     } else ok: {

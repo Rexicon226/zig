@@ -52,7 +52,7 @@ test "atomicrmw and atomicload" {
 }
 
 fn testAtomicRmw(ptr: *u8) !void {
-    const prev_value = @atomicRmw(u8, ptr, .Xchg, 42, .seq_cst);
+    const prev_value = @atomicRmw(u8, ptr, .xchg, 42, .seq_cst);
     try expect(prev_value == 200);
     comptime {
         var x: i32 = 1234;
@@ -159,7 +159,7 @@ test "atomic load and rmw with enum" {
 
     try expect(@atomicLoad(Value, &x, .seq_cst) != .b);
 
-    _ = @atomicRmw(Value, &x, .Xchg, .c, .seq_cst);
+    _ = @atomicRmw(Value, &x, .xchg, .c, .seq_cst);
     try expect(@atomicLoad(Value, &x, .seq_cst) == .c);
     try expect(@atomicLoad(Value, &x, .seq_cst) != .a);
     try expect(@atomicLoad(Value, &x, .seq_cst) != .b);
@@ -196,15 +196,15 @@ test "atomicrmw with floats" {
 fn testAtomicRmwFloat() !void {
     var x: f32 = 0;
     try expect(x == 0);
-    _ = @atomicRmw(f32, &x, .Xchg, 1, .seq_cst);
+    _ = @atomicRmw(f32, &x, .xchg, 1, .seq_cst);
     try expect(x == 1);
-    _ = @atomicRmw(f32, &x, .Add, 5, .seq_cst);
+    _ = @atomicRmw(f32, &x, .add, 5, .seq_cst);
     try expect(x == 6);
-    _ = @atomicRmw(f32, &x, .Sub, 2, .seq_cst);
+    _ = @atomicRmw(f32, &x, .sub, 2, .seq_cst);
     try expect(x == 4);
-    _ = @atomicRmw(f32, &x, .Max, 13, .seq_cst);
+    _ = @atomicRmw(f32, &x, .max, 13, .seq_cst);
     try expect(x == 13);
-    _ = @atomicRmw(f32, &x, .Min, 42, .seq_cst);
+    _ = @atomicRmw(f32, &x, .min, 42, .seq_cst);
     try expect(x == 13);
 }
 
@@ -239,46 +239,46 @@ fn testAtomicRmwInt(comptime signedness: std.builtin.Signedness, comptime N: usi
     const int = std.meta.Int(signedness, N);
 
     var x: int = 1;
-    var res = @atomicRmw(int, &x, .Xchg, 3, .seq_cst);
+    var res = @atomicRmw(int, &x, .xchg, 3, .seq_cst);
     try expect(x == 3 and res == 1);
 
-    res = @atomicRmw(int, &x, .Add, 3, .seq_cst);
+    res = @atomicRmw(int, &x, .add, 3, .seq_cst);
     var y: int = 3;
     try expect(res == y);
     y = y + 3;
     try expect(x == y);
 
-    res = @atomicRmw(int, &x, .Sub, 1, .seq_cst);
+    res = @atomicRmw(int, &x, .sub, 1, .seq_cst);
     try expect(res == y);
     y = y - 1;
     try expect(x == y);
 
-    res = @atomicRmw(int, &x, .And, 4, .seq_cst);
+    res = @atomicRmw(int, &x, .@"and", 4, .seq_cst);
     try expect(res == y);
     y = y & 4;
     try expect(x == y);
 
-    res = @atomicRmw(int, &x, .Nand, 4, .seq_cst);
+    res = @atomicRmw(int, &x, .nand, 4, .seq_cst);
     try expect(res == y);
     y = ~(y & 4);
     try expect(x == y);
 
-    res = @atomicRmw(int, &x, .Or, 6, .seq_cst);
+    res = @atomicRmw(int, &x, .@"or", 6, .seq_cst);
     try expect(res == y);
     y = y | 6;
     try expect(x == y);
 
-    res = @atomicRmw(int, &x, .Xor, 2, .seq_cst);
+    res = @atomicRmw(int, &x, .xor, 2, .seq_cst);
     try expect(res == y);
     y = y ^ 2;
     try expect(x == y);
 
-    res = @atomicRmw(int, &x, .Max, 1, .seq_cst);
+    res = @atomicRmw(int, &x, .max, 1, .seq_cst);
     try expect(res == y);
     y = @max(y, 1);
     try expect(x == y);
 
-    res = @atomicRmw(int, &x, .Min, 1, .seq_cst);
+    res = @atomicRmw(int, &x, .min, 1, .seq_cst);
     try expect(res == y);
     y = @min(y, 1);
     try expect(x == y);
@@ -304,53 +304,53 @@ fn testAtomicRmwInt128(comptime signedness: std.builtin.Signedness) !void {
     const replacement: int = 0x00000000_00000005_00000000_00000003;
 
     var x: int align(16) = initial;
-    var res = @atomicRmw(int, &x, .Xchg, replacement, .seq_cst);
+    var res = @atomicRmw(int, &x, .xchg, replacement, .seq_cst);
     try expect(x == replacement and res == initial);
 
     var operator: int = 0x00000001_00000000_20000000_00000000;
-    res = @atomicRmw(int, &x, .Add, operator, .seq_cst);
+    res = @atomicRmw(int, &x, .add, operator, .seq_cst);
     var y: int = replacement;
     try expect(res == y);
     y = y + operator;
     try expect(x == y);
 
     operator = 0x00000000_10000000_00000000_20000000;
-    res = @atomicRmw(int, &x, .Sub, operator, .seq_cst);
+    res = @atomicRmw(int, &x, .sub, operator, .seq_cst);
     try expect(res == y);
     y = y - operator;
     try expect(x == y);
 
     operator = 0x12345678_87654321_12345678_87654321;
-    res = @atomicRmw(int, &x, .And, operator, .seq_cst);
+    res = @atomicRmw(int, &x, .@"and", operator, .seq_cst);
     try expect(res == y);
     y = y & operator;
     try expect(x == y);
 
     operator = 0x00000000_10000000_00000000_20000000;
-    res = @atomicRmw(int, &x, .Nand, operator, .seq_cst);
+    res = @atomicRmw(int, &x, .nand, operator, .seq_cst);
     try expect(res == y);
     y = ~(y & operator);
     try expect(x == y);
 
     operator = 0x12340000_56780000_67890000_98760000;
-    res = @atomicRmw(int, &x, .Or, operator, .seq_cst);
+    res = @atomicRmw(int, &x, .@"or", operator, .seq_cst);
     try expect(res == y);
     y = y | operator;
     try expect(x == y);
 
     operator = 0x0a0b0c0d_0e0f0102_03040506_0708090a;
-    res = @atomicRmw(int, &x, .Xor, operator, .seq_cst);
+    res = @atomicRmw(int, &x, .xor, operator, .seq_cst);
     try expect(res == y);
     y = y ^ operator;
     try expect(x == y);
 
     operator = 0x00000000_10000000_00000000_20000000;
-    res = @atomicRmw(int, &x, .Max, operator, .seq_cst);
+    res = @atomicRmw(int, &x, .max, operator, .seq_cst);
     try expect(res == y);
     y = @max(y, operator);
     try expect(x == y);
 
-    res = @atomicRmw(int, &x, .Min, operator, .seq_cst);
+    res = @atomicRmw(int, &x, .min, operator, .seq_cst);
     try expect(res == y);
     y = @min(y, operator);
     try expect(x == y);
@@ -388,7 +388,7 @@ fn testAtomicsWithType(comptime T: type, a: T, b: T) !void {
     @atomicStore(T, &x, a, .seq_cst);
     try expect(x == a);
     try expect(@atomicLoad(T, &x, .seq_cst) == a);
-    try expect(@atomicRmw(T, &x, .Xchg, b, .seq_cst) == a);
+    try expect(@atomicRmw(T, &x, .xchg, b, .seq_cst) == a);
     try expect(@cmpxchgStrong(T, &x, b, a, .seq_cst, .seq_cst) == null);
     if (@sizeOf(T) != 0)
         try expect(@cmpxchgStrong(T, &x, b, a, .seq_cst, .seq_cst).? == a);
@@ -400,7 +400,7 @@ fn testAtomicsWithPackedStruct(comptime T: type, a: T, b: T) !void {
     @atomicStore(T, &x, a, .seq_cst);
     try expect(@as(BackingInt, @bitCast(x)) == @as(BackingInt, @bitCast(a)));
     try expect(@as(BackingInt, @bitCast(@atomicLoad(T, &x, .seq_cst))) == @as(BackingInt, @bitCast(a)));
-    try expect(@as(BackingInt, @bitCast(@atomicRmw(T, &x, .Xchg, b, .seq_cst))) == @as(BackingInt, @bitCast(a)));
+    try expect(@as(BackingInt, @bitCast(@atomicRmw(T, &x, .xchg, b, .seq_cst))) == @as(BackingInt, @bitCast(a)));
     try expect(@cmpxchgStrong(T, &x, b, a, .seq_cst, .seq_cst) == null);
     if (@sizeOf(T) != 0)
         try expect(@as(BackingInt, @bitCast(@cmpxchgStrong(T, &x, b, a, .seq_cst, .seq_cst).?)) == @as(BackingInt, @bitCast(a)));

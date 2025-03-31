@@ -240,7 +240,7 @@ fn utf8ValidateSliceImpl(input: []const u8, comptime surrogates: Surrogates) boo
         while (remaining.len >= chunk_len) {
             const chunk: Chunk = remaining[0..chunk_len].*;
             const mask: Chunk = @splat(0x80);
-            if (@reduce(.Or, chunk & mask == mask)) {
+            if (@reduce(.@"or", chunk & mask == mask)) {
                 // found a non ASCII byte
                 break;
             }
@@ -940,7 +940,7 @@ fn utf16LeToUtf8ArrayListImpl(
         while (remaining.len >= chunk_len) {
             const chunk: Chunk = remaining[0..chunk_len].*;
             const mask: Chunk = @splat(mem.nativeToLittle(u16, 0x7F));
-            if (@reduce(.Or, chunk | mask != mask)) {
+            if (@reduce(.@"or", chunk | mask != mask)) {
                 // found a non ASCII code unit
                 break;
             }
@@ -1021,7 +1021,7 @@ fn utf16LeToUtf8Impl(utf8: []u8, utf16le: []const u16, comptime surrogates: Surr
         while (remaining.len >= chunk_len) {
             const chunk: Chunk = remaining[0..chunk_len].*;
             const mask: Chunk = @splat(mem.nativeToLittle(u16, 0x7F));
-            if (@reduce(.Or, chunk | mask != mask)) {
+            if (@reduce(.@"or", chunk | mask != mask)) {
                 // found a non ASCII code unit
                 break;
             }
@@ -1141,7 +1141,7 @@ fn utf8ToUtf16LeArrayListImpl(result: *std.ArrayList(u16), utf8: []const u8, com
         while (remaining.len >= chunk_len) {
             const chunk: Chunk = remaining[0..chunk_len].*;
             const mask: Chunk = @splat(0x80);
-            if (@reduce(.Or, chunk & mask == mask)) {
+            if (@reduce(.@"or", chunk & mask == mask)) {
                 // found a non ASCII code unit
                 break;
             }
@@ -1210,7 +1210,7 @@ pub fn utf8ToUtf16LeImpl(utf16le: []u16, utf8: []const u8, comptime surrogates: 
         while (remaining.len >= chunk_len) {
             const chunk: Chunk = remaining[0..chunk_len].*;
             const mask: Chunk = @splat(0x80);
-            if (@reduce(.Or, chunk & mask == mask)) {
+            if (@reduce(.@"or", chunk & mask == mask)) {
                 // found a non ASCII code unit
                 break;
             }

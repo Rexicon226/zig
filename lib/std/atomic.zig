@@ -21,7 +21,7 @@ pub fn Value(comptime T: type) type {
         }
 
         pub inline fn swap(self: *Self, operand: T, comptime order: AtomicOrder) T {
-            return @atomicRmw(T, &self.raw, .Xchg, operand, order);
+            return @atomicRmw(T, &self.raw, .xchg, operand, order);
         }
 
         pub inline fn cmpxchgWeak(
@@ -45,35 +45,35 @@ pub fn Value(comptime T: type) type {
         }
 
         pub inline fn fetchAdd(self: *Self, operand: T, comptime order: AtomicOrder) T {
-            return @atomicRmw(T, &self.raw, .Add, operand, order);
+            return @atomicRmw(T, &self.raw, .add, operand, order);
         }
 
         pub inline fn fetchSub(self: *Self, operand: T, comptime order: AtomicOrder) T {
-            return @atomicRmw(T, &self.raw, .Sub, operand, order);
+            return @atomicRmw(T, &self.raw, .sub, operand, order);
         }
 
         pub inline fn fetchMin(self: *Self, operand: T, comptime order: AtomicOrder) T {
-            return @atomicRmw(T, &self.raw, .Min, operand, order);
+            return @atomicRmw(T, &self.raw, .min, operand, order);
         }
 
         pub inline fn fetchMax(self: *Self, operand: T, comptime order: AtomicOrder) T {
-            return @atomicRmw(T, &self.raw, .Max, operand, order);
+            return @atomicRmw(T, &self.raw, .max, operand, order);
         }
 
         pub inline fn fetchAnd(self: *Self, operand: T, comptime order: AtomicOrder) T {
-            return @atomicRmw(T, &self.raw, .And, operand, order);
+            return @atomicRmw(T, &self.raw, .@"and", operand, order);
         }
 
         pub inline fn fetchNand(self: *Self, operand: T, comptime order: AtomicOrder) T {
-            return @atomicRmw(T, &self.raw, .Nand, operand, order);
+            return @atomicRmw(T, &self.raw, .nand, operand, order);
         }
 
         pub inline fn fetchXor(self: *Self, operand: T, comptime order: AtomicOrder) T {
-            return @atomicRmw(T, &self.raw, .Xor, operand, order);
+            return @atomicRmw(T, &self.raw, .xor, operand, order);
         }
 
         pub inline fn fetchOr(self: *Self, operand: T, comptime order: AtomicOrder) T {
-            return @atomicRmw(T, &self.raw, .Or, operand, order);
+            return @atomicRmw(T, &self.raw, .@"or", operand, order);
         }
 
         pub inline fn rmw(

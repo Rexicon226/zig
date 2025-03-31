@@ -341,7 +341,7 @@ const Fuzzer = struct {
         fuzzer_one(@volatileCast(f.input.items.ptr), f.input.items.len);
 
         f.n_runs += 1;
-        _ = @atomicRmw(usize, &header.n_runs, .Add, 1, .monotonic);
+        _ = @atomicRmw(usize, &header.n_runs, .add, 1, .monotonic);
 
         // Track code coverage from all runs.
         comptime assert(SeenPcsHeader.trailing[0] == .pc_bits_usize);
@@ -358,7 +358,7 @@ const Fuzzer = struct {
         for (header_end_ptr[0..pc_counters.len], pc_counters) |*elem, *array| {
             const v: V = array.*;
             const mask: usize = @bitCast(v != zero_v);
-            const prev = @atomicRmw(usize, elem, .Or, mask, .monotonic);
+            const prev = @atomicRmw(usize, elem, .@"or", mask, .monotonic);
             fresh = fresh or (prev | mask) != prev;
             superset = superset and (prev | mask) != mask;
         }
@@ -369,7 +369,7 @@ const Fuzzer = struct {
             for (f.pc_counters[i * @bitSizeOf(usize) ..][0..remainder], 0..) |byte, bit_index| {
                 mask |= @as(usize, @intFromBool(byte != 0)) << @intCast(bit_index);
             }
-            const prev = @atomicRmw(usize, elem, .Or, mask, .monotonic);
+            const prev = @atomicRmw(usize, elem, .@"or", mask, .monotonic);
             fresh = fresh or (prev | mask) != prev;
             superset = superset and (prev | mask) != mask;
         }
@@ -383,7 +383,7 @@ const Fuzzer = struct {
                 .last_traced_comparison = f.traced_comparisons.count(),
             };
             @memcpy(new_input, @volatileCast(f.input.items));
-            _ = @atomicRmw(usize, &header.unique_runs, .Add, 1, .monotonic);
+            _ = @atomicRmw(usize, &header.unique_runs, .add, 1, .monotonic);
             return;
         }
 
@@ -401,7 +401,7 @@ const Fuzzer = struct {
 
         // TODO: also mark input as "hot" so it gets prioritized for checking mutations above others.
 
-        _ = @atomicRmw(usize, &header.unique_runs, .Add, 1, .monotonic);
+        _ = @atomicRmw(usize, &header.unique_runs, .add, 1, .monotonic);
     }
 };
 

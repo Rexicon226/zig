@@ -317,25 +317,25 @@ pub fn firstTrue(vec: anytype) ?VectorIndex(@TypeOf(vec)) {
     const len = vectorLength(@TypeOf(vec));
     const IndexInt = VectorIndex(@TypeOf(vec));
 
-    if (!@reduce(.Or, vec)) {
+    if (!@reduce(.@"or", vec)) {
         return null;
     }
     const all_max: @Vector(len, IndexInt) = @splat(~@as(IndexInt, 0));
     const indices = @select(IndexInt, vec, iota(IndexInt, len), all_max);
-    return @reduce(.Min, indices);
+    return @reduce(.min, indices);
 }
 
 pub fn lastTrue(vec: anytype) ?VectorIndex(@TypeOf(vec)) {
     const len = vectorLength(@TypeOf(vec));
     const IndexInt = VectorIndex(@TypeOf(vec));
 
-    if (!@reduce(.Or, vec)) {
+    if (!@reduce(.@"or", vec)) {
         return null;
     }
 
     const all_zeroes: @Vector(len, IndexInt) = @splat(0);
     const indices = @select(IndexInt, vec, iota(IndexInt, len), all_zeroes);
-    return @reduce(.Max, indices);
+    return @reduce(.max, indices);
 }
 
 pub fn countTrues(vec: anytype) VectorCount(@TypeOf(vec)) {
@@ -346,7 +346,7 @@ pub fn countTrues(vec: anytype) VectorCount(@TypeOf(vec)) {
     const all_zeroes: @Vector(len, CountIntType) = @splat(0);
 
     const one_if_true = @select(CountIntType, vec, all_ones, all_zeroes);
-    return @reduce(.Add, one_if_true);
+    return @reduce(.add, one_if_true);
 }
 
 pub fn firstIndexOfValue(vec: anytype, value: std.meta.Child(@TypeOf(vec))) ?VectorIndex(@TypeOf(vec)) {
@@ -418,21 +418,21 @@ pub fn prefixScan(comptime op: std.builtin.ReduceOp, comptime hop: isize, vec: a
 
     const identity = comptime switch (@typeInfo(Child)) {
         .bool => switch (op) {
-            .Or, .Xor => false,
-            .And => true,
+            .@"or", .xor => false,
+            .@"and" => true,
             else => @compileError("Invalid prefixScan operation " ++ @tagName(op) ++ " for vector of booleans."),
         },
         .int => switch (op) {
-            .Max => std.math.minInt(Child),
-            .Add, .Or, .Xor => 0,
-            .Mul => 1,
-            .And, .Min => std.math.maxInt(Child),
+            .max => std.math.minInt(Child),
+            .add, .@"or", .xor => 0,
+            .mul => 1,
+            .@"and", .min => std.math.maxInt(Child),
         },
         .float => switch (op) {
-            .Max => -std.math.inf(Child),
-            .Add => 0,
-            .Mul => 1,
-            .Min => std.math.inf(Child),
+            .max => -std.math.inf(Child),
+            .add => 0,
+            .mul => 1,
+            .min => std.math.inf(Child),
             else => @compileError("Invalid prefixScan operation " ++ @tagName(op) ++ " for vector of floats."),
         },
         else => @compileError("Invalid type " ++ @typeName(VecType) ++ " for prefixScan."),
@@ -441,18 +441,18 @@ pub fn prefixScan(comptime op: std.builtin.ReduceOp, comptime hop: isize, vec: a
     const fn_container = struct {
         fn opFn(a: VecType, b: VecType) VecType {
             return if (Child == bool) switch (op) {
-                .And => @select(bool, a, b, @as(VecType, @splat(false))),
-                .Or => @select(bool, a, @as(VecType, @splat(true)), b),
-                .Xor => a != b,
+                .@"and" => @select(bool, a, b, @as(VecType, @splat(false))),
+                .@"or" => @select(bool, a, @as(VecType, @splat(true)), b),
+                .xor => a != b,
                 else => unreachable,
             } else switch (op) {
-                .And => a & b,
-                .Or => a | b,
-                .Xor => a ^ b,
-                .Add => a + b,
-                .Mul => a * b,
-                .Min => @min(a, b),
-                .Max => @max(a, b),
+                .@"and" => a & b,
+                .@"or" => a | b,
+                .xor => a ^ b,
+                .add => a + b,
+                .mul => a * b,
+                .min => @min(a, b),
+                .max => @max(a, b),
             };
         }
     };
@@ -473,24 +473,24 @@ test "vector prefix scan" {
 
     const ones: @Vector(32, u8) = @splat(1);
 
-    try std.testing.expectEqual(iota(u8, 32) + ones, prefixScan(.Add, 1, ones));
-    try std.testing.expectEqual(@Vector(4, i32){ 11, 3, 1, 1 }, prefixScan(.And, 1, int_base));
-    try std.testing.expectEqual(@Vector(4, i32){ 11, 31, 31, -1 }, prefixScan(.Or, 1, int_base));
-    try std.testing.expectEqual(@Vector(4, i32){ 11, 28, 21, -2 }, prefixScan(.Xor, 1, int_base));
-    try std.testing.expectEqual(@Vector(4, i32){ 11, 34, 43, 22 }, prefixScan(.Add, 1, int_base));
-    try std.testing.expectEqual(@Vector(4, i32){ 11, 253, 2277, -47817 }, prefixScan(.Mul, 1, int_base));
-    try std.testing.expectEqual(@Vector(4, i32){ 11, 11, 9, -21 }, prefixScan(.Min, 1, int_base));
-    try std.testing.expectEqual(@Vector(4, i32){ 11, 23, 23, 23 }, prefixScan(.Max, 1, int_base));
+    try std.testing.expectEqual(iota(u8, 32) + ones, prefixScan(.add, 1, ones));
+    try std.testing.expectEqual(@Vector(4, i32){ 11, 3, 1, 1 }, prefixScan(.@"and", 1, int_base));
+    try std.testing.expectEqual(@Vector(4, i32){ 11, 31, 31, -1 }, prefixScan(.@"or", 1, int_base));
+    try std.testing.expectEqual(@Vector(4, i32){ 11, 28, 21, -2 }, prefixScan(.xor, 1, int_base));
+    try std.testing.expectEqual(@Vector(4, i32){ 11, 34, 43, 22 }, prefixScan(.add, 1, int_base));
+    try std.testing.expectEqual(@Vector(4, i32){ 11, 253, 2277, -47817 }, prefixScan(.mul, 1, int_base));
+    try std.testing.expectEqual(@Vector(4, i32){ 11, 11, 9, -21 }, prefixScan(.min, 1, int_base));
+    try std.testing.expectEqual(@Vector(4, i32){ 11, 23, 23, 23 }, prefixScan(.max, 1, int_base));
 
     // Trying to predict all inaccuracies when adding and multiplying floats with prefixScans would be a mess, so we don't test those.
-    try std.testing.expectEqual(@Vector(4, f32){ 2, 0.5, -10, -10 }, prefixScan(.Min, 1, float_base));
-    try std.testing.expectEqual(@Vector(4, f32){ 2, 2, 2, 6.54321 }, prefixScan(.Max, 1, float_base));
+    try std.testing.expectEqual(@Vector(4, f32){ 2, 0.5, -10, -10 }, prefixScan(.min, 1, float_base));
+    try std.testing.expectEqual(@Vector(4, f32){ 2, 2, 2, 6.54321 }, prefixScan(.max, 1, float_base));
 
-    try std.testing.expectEqual(@Vector(4, bool){ true, true, false, false }, prefixScan(.Xor, 1, bool_base));
-    try std.testing.expectEqual(@Vector(4, bool){ true, true, true, true }, prefixScan(.Or, 1, bool_base));
-    try std.testing.expectEqual(@Vector(4, bool){ true, false, false, false }, prefixScan(.And, 1, bool_base));
+    try std.testing.expectEqual(@Vector(4, bool){ true, true, false, false }, prefixScan(.xor, 1, bool_base));
+    try std.testing.expectEqual(@Vector(4, bool){ true, true, true, true }, prefixScan(.@"or", 1, bool_base));
+    try std.testing.expectEqual(@Vector(4, bool){ true, false, false, false }, prefixScan(.@"and", 1, bool_base));
 
-    try std.testing.expectEqual(@Vector(4, i32){ 11, 23, 20, 2 }, prefixScan(.Add, 2, int_base));
-    try std.testing.expectEqual(@Vector(4, i32){ 22, 11, -12, -21 }, prefixScan(.Add, -1, int_base));
-    try std.testing.expectEqual(@Vector(4, i32){ 11, 23, 9, -10 }, prefixScan(.Add, 3, int_base));
+    try std.testing.expectEqual(@Vector(4, i32){ 11, 23, 20, 2 }, prefixScan(.add, 2, int_base));
+    try std.testing.expectEqual(@Vector(4, i32){ 22, 11, -12, -21 }, prefixScan(.add, -1, int_base));
+    try std.testing.expectEqual(@Vector(4, i32){ 11, 23, 9, -10 }, prefixScan(.add, 3, int_base));
 }

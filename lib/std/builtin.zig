@@ -90,13 +90,13 @@ pub const AtomicOrder = enum {
 /// This data structure is used by the Zig language code generation and
 /// therefore must be kept in sync with the compiler implementation.
 pub const ReduceOp = enum {
-    And,
-    Or,
-    Xor,
-    Min,
-    Max,
-    Add,
-    Mul,
+    @"and",
+    @"or",
+    xor,
+    min,
+    max,
+    add,
+    mul,
 };
 
 /// This data structure is used by the Zig language code generation and
@@ -104,33 +104,33 @@ pub const ReduceOp = enum {
 pub const AtomicRmwOp = enum {
     /// Exchange - store the operand unmodified.
     /// Supports enums, integers, and floats.
-    Xchg,
+    xchg,
     /// Add operand to existing value.
     /// Supports integers and floats.
     /// For integers, two's complement wraparound applies.
-    Add,
+    add,
     /// Subtract operand from existing value.
     /// Supports integers and floats.
     /// For integers, two's complement wraparound applies.
-    Sub,
+    sub,
     /// Perform bitwise AND on existing value with operand.
     /// Supports integers.
-    And,
+    @"and",
     /// Perform bitwise NAND on existing value with operand.
     /// Supports integers.
-    Nand,
+    nand,
     /// Perform bitwise OR on existing value with operand.
     /// Supports integers.
-    Or,
+    @"or",
     /// Perform bitwise XOR on existing value with operand.
     /// Supports integers.
-    Xor,
+    xor,
     /// Store operand if it is larger than the existing value.
     /// Supports integers and floats.
-    Max,
+    max,
     /// Store operand if it is smaller than the existing value.
     /// Supports integers and floats.
-    Min,
+    min,
 };
 
 /// The code model puts constraints on the location of symbols and the size of code and data.

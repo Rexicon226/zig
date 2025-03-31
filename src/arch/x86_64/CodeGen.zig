@@ -100489,30 +100489,30 @@ fn atomicOp(
     };
     defer if (mem_lock) |lock| self.register_manager.unlockReg(lock);
 
-    const use_sse = rmw_op orelse .Xchg != .Xchg and val_ty.isRuntimeFloat();
-    const strat: enum { lock, loop, libcall } = if (use_sse) .loop else switch (rmw_op orelse .Xchg) {
-        .Xchg,
-        .Add,
-        .Sub,
+    const use_sse = rmw_op orelse .xchg != .xchg and val_ty.isRuntimeFloat();
+    const strat: enum { lock, loop, libcall } = if (use_sse) .loop else switch (rmw_op orelse .xchg) {
+        .xchg,
+        .add,
+        .sub,
         => if (val_abi_size <= 8) .lock else if (val_abi_size <= 16) .loop else .libcall,
-        .And,
-        .Or,
-        .Xor,
+        .@"and",
+        .@"or",
+        .xor,
         => if (val_abi_size <= 8 and unused) .lock else if (val_abi_size <= 16) .loop else .libcall,
-        .Nand,
-        .Max,
-        .Min,
+        .nand,
+        .max,
+        .min,
         => if (val_abi_size <= 16) .loop else .libcall,
     };
     switch (strat) {
         .lock => {
             const mir_tag: Mir.Inst.FixedTag = if (rmw_op) |op| switch (op) {
-                .Xchg => if (unused) .{ ._, .mov } else .{ ._g, .xch },
-                .Add => .{ .@"lock _", if (unused) .add else .xadd },
-                .Sub => .{ .@"lock _", if (unused) .sub else .xadd },
-                .And => .{ .@"lock _", .@"and" },
-                .Or => .{ .@"lock _", .@"or" },
-                .Xor => .{ .@"lock _", .xor },
+                .xchg => if (unused) .{ ._, .mov } else .{ ._g, .xch },
+                .add => .{ .@"lock _", if (unused) .add else .xadd },
+                .sub => .{ .@"lock _", if (unused) .sub else .xadd },
+                .@"and" => .{ .@"lock _", .@"and" },
+                .@"or" => .{ .@"lock _", .@"or" },
+                .xor => .{ .@"lock _", .xor },
                 else => unreachable,
             } else switch (order) {
                 .unordered, .monotonic, .release, .acq_rel => .{ ._, .mov },
@@ -100526,7 +100526,7 @@ fn atomicOp(
             defer self.register_manager.unlockReg(dst_lock);
 
             try self.genSetReg(dst_reg, val_ty, val_mcv, .{});
-            if (rmw_op == std.builtin.AtomicRmwOp.Sub and mir_tag[1] == .xadd) {
+            if (rmw_op == std.builtin.AtomicRmwOp.sub and mir_tag[1] == .xadd) {
                 try self.genUnOpMir(.{ ._, .neg }, val_ty, dst_mcv);
             }
             try self.asmMemoryRegister(mir_tag, ptr_mem, registerAlias(dst_reg, val_abi_size));
@@ -100549,27 +100549,27 @@ fn atomicOp(
 
             try self.asmRegisterMemory(.{ ._, .mov }, registerAlias(.rax, val_abi_size), ptr_mem);
             const loop: Mir.Inst.Index = @intCast(self.mir_instructions.len);
-            if (!use_sse and rmw_op orelse .Xchg != .Xchg) {
+            if (!use_sse and rmw_op orelse .xchg != .xchg) {
                 try self.genSetReg(tmp_reg, val_ty, .{ .register = .rax }, .{});
             }
             if (rmw_op) |op| if (use_sse) {
                 const mir_tag = @as(?Mir.Inst.FixedTag, switch (op) {
-                    .Add => switch (val_ty.floatBits(self.target.*)) {
+                    .add => switch (val_ty.floatBits(self.target.*)) {
                         32 => if (self.hasFeature(.avx)) .{ .v_ss, .add } else .{ ._ss, .add },
                         64 => if (self.hasFeature(.avx)) .{ .v_sd, .add } else .{ ._sd, .add },
                         else => null,
                     },
-                    .Sub => switch (val_ty.floatBits(self.target.*)) {
+                    .sub => switch (val_ty.floatBits(self.target.*)) {
                         32 => if (self.hasFeature(.avx)) .{ .v_ss, .sub } else .{ ._ss, .sub },
                         64 => if (self.hasFeature(.avx)) .{ .v_sd, .sub } else .{ ._sd, .sub },
                         else => null,
                     },
-                    .Min => switch (val_ty.floatBits(self.target.*)) {
+                    .min => switch (val_ty.floatBits(self.target.*)) {
                         32 => if (self.hasFeature(.avx)) .{ .v_ss, .min } else .{ ._ss, .min },
                         64 => if (self.hasFeature(.avx)) .{ .v_sd, .min } else .{ ._sd, .min },
                         else => null,
                     },
-                    .Max => switch (val_ty.floatBits(self.target.*)) {
+                    .max => switch (val_ty.floatBits(self.target.*)) {
                         32 => if (self.hasFeature(.avx)) .{ .v_ss, .max } else .{ ._ss, .max },
                         64 => if (self.hasFeature(.avx)) .{ .v_sd, .max } else .{ ._sd, .max },
                         else => null,
@@ -100610,29 +100610,29 @@ fn atomicOp(
                 }
                 try self.genSetReg(tmp_reg, val_ty, .{ .register = sse_reg }, .{});
             } else switch (op) {
-                .Xchg => try self.genSetReg(tmp_reg, val_ty, val_mcv, .{}),
-                .Add => try self.genBinOpMir(.{ ._, .add }, val_ty, tmp_mcv, val_mcv),
-                .Sub => try self.genBinOpMir(.{ ._, .sub }, val_ty, tmp_mcv, val_mcv),
-                .And => try self.genBinOpMir(.{ ._, .@"and" }, val_ty, tmp_mcv, val_mcv),
-                .Nand => {
+                .xchg => try self.genSetReg(tmp_reg, val_ty, val_mcv, .{}),
+                .add => try self.genBinOpMir(.{ ._, .add }, val_ty, tmp_mcv, val_mcv),
+                .sub => try self.genBinOpMir(.{ ._, .sub }, val_ty, tmp_mcv, val_mcv),
+                .@"and" => try self.genBinOpMir(.{ ._, .@"and" }, val_ty, tmp_mcv, val_mcv),
+                .nand => {
                     try self.genBinOpMir(.{ ._, .@"and" }, val_ty, tmp_mcv, val_mcv);
                     try self.genUnOpMir(.{ ._, .not }, val_ty, tmp_mcv);
                 },
-                .Or => try self.genBinOpMir(.{ ._, .@"or" }, val_ty, tmp_mcv, val_mcv),
-                .Xor => try self.genBinOpMir(.{ ._, .xor }, val_ty, tmp_mcv, val_mcv),
-                .Min, .Max => {
+                .@"or" => try self.genBinOpMir(.{ ._, .@"or" }, val_ty, tmp_mcv, val_mcv),
+                .xor => try self.genBinOpMir(.{ ._, .xor }, val_ty, tmp_mcv, val_mcv),
+                .min, .max => {
                     const cc: Condition = switch (if (val_ty.isAbiInt(zcu))
                         val_ty.intInfo(zcu).signedness
                     else
                         .unsigned) {
                         .unsigned => switch (op) {
-                            .Min => .a,
-                            .Max => .b,
+                            .min => .a,
+                            .max => .b,
                             else => unreachable,
                         },
                         .signed => switch (op) {
-                            .Min => .g,
-                            .Max => .l,
+                            .min => .g,
+                            .max => .l,
                             else => unreachable,
                         },
                     };
@@ -100710,54 +100710,54 @@ fn atomicOp(
             };
             const val_lo_mem = try val_mem_mcv.mem(self, .{ .size = .qword });
             const val_hi_mem = try val_mem_mcv.address().offset(8).deref().mem(self, .{ .size = .qword });
-            if (rmw_op != std.builtin.AtomicRmwOp.Xchg) {
+            if (rmw_op != std.builtin.AtomicRmwOp.xchg) {
                 try self.asmRegisterRegister(.{ ._, .mov }, .rbx, .rax);
                 try self.asmRegisterRegister(.{ ._, .mov }, .rcx, .rdx);
             }
             if (rmw_op) |op| switch (op) {
-                .Xchg => {
+                .xchg => {
                     try self.asmRegisterMemory(.{ ._, .mov }, .rbx, val_lo_mem);
                     try self.asmRegisterMemory(.{ ._, .mov }, .rcx, val_hi_mem);
                 },
-                .Add => {
+                .add => {
                     try self.asmRegisterMemory(.{ ._, .add }, .rbx, val_lo_mem);
                     try self.asmRegisterMemory(.{ ._, .adc }, .rcx, val_hi_mem);
                 },
-                .Sub => {
+                .sub => {
                     try self.asmRegisterMemory(.{ ._, .sub }, .rbx, val_lo_mem);
                     try self.asmRegisterMemory(.{ ._, .sbb }, .rcx, val_hi_mem);
                 },
-                .And => {
+                .@"and" => {
                     try self.asmRegisterMemory(.{ ._, .@"and" }, .rbx, val_lo_mem);
                     try self.asmRegisterMemory(.{ ._, .@"and" }, .rcx, val_hi_mem);
                 },
-                .Nand => {
+                .nand => {
                     try self.asmRegisterMemory(.{ ._, .@"and" }, .rbx, val_lo_mem);
                     try self.asmRegisterMemory(.{ ._, .@"and" }, .rcx, val_hi_mem);
                     try self.asmRegister(.{ ._, .not }, .rbx);
                     try self.asmRegister(.{ ._, .not }, .rcx);
                 },
-                .Or => {
+                .@"or" => {
                     try self.asmRegisterMemory(.{ ._, .@"or" }, .rbx, val_lo_mem);
                     try self.asmRegisterMemory(.{ ._, .@"or" }, .rcx, val_hi_mem);
                 },
-                .Xor => {
+                .xor => {
                     try self.asmRegisterMemory(.{ ._, .xor }, .rbx, val_lo_mem);
                     try self.asmRegisterMemory(.{ ._, .xor }, .rcx, val_hi_mem);
                 },
-                .Min, .Max => {
+                .min, .max => {
                     const cc: Condition = switch (if (val_ty.isAbiInt(zcu))
                         val_ty.intInfo(zcu).signedness
                     else
                         .unsigned) {
                         .unsigned => switch (op) {
-                            .Min => .a,
-                            .Max => .b,
+                            .min => .a,
+                            .max => .b,
                             else => unreachable,
                         },
                         .signed => switch (op) {
-                            .Min => .g,
-                            .Max => .l,
+                            .min => .g,
+                            .max => .l,
                             else => unreachable,
                         },
                     };
@@ -102886,8 +102886,8 @@ fn airReduce(self: *CodeGen, inst: Air.Inst.Index) !void {
                 while (true) : (limb_offset -= 8) {
                     try self.asmRegisterMemory(
                         .{ ._, if (first) if (need_mask) .@"and" else .mov else switch (reduce.operation) {
-                            .Or => .@"or",
-                            .And => .@"and",
+                            .@"or" => .@"or",
+                            .@"and" => .@"and",
                             else => return self.fail("TODO implement airReduce for {}", .{operand_ty.fmt(pt)}),
                         } },
                         acc_reg.to64(),
@@ -102900,11 +102900,11 @@ fn airReduce(self: *CodeGen, inst: Air.Inst.Index) !void {
                     first = false;
                 }
                 switch (reduce.operation) {
-                    .Or => {
+                    .@"or" => {
                         try self.asmRegisterRegister(.{ ._, .@"test" }, acc_reg.to64(), acc_reg.to64());
                         break :result .{ .eflags = .nz };
                     },
-                    .And => {
+                    .@"and" => {
                         try self.asmRegisterImmediate(.{ ._, .cmp }, acc_reg.to64(), .s(-1));
                         break :result .{ .eflags = .z };
                     },
@@ -102913,7 +102913,7 @@ fn airReduce(self: *CodeGen, inst: Air.Inst.Index) !void {
             });
             const mask = @as(u64, std.math.maxInt(u64)) >> ~mask_len_minus_one;
             switch (reduce.operation) {
-                .Or => {
+                .@"or" => {
                     if (operand_mcv.isBase()) try self.asmMemoryImmediate(
                         .{ ._, .@"test" },
                         try operand_mcv.mem(self, .{ .size = .fromSize(abi_size) }),
@@ -102944,7 +102944,7 @@ fn airReduce(self: *CodeGen, inst: Air.Inst.Index) !void {
                     }
                     break :result .{ .eflags = .nz };
                 },
-                .And => {
+                .@"and" => {
                     const tmp_reg = registerAlias(
                         try self.copyToTmpRegister(operand_ty, operand_mcv),
                         abi_size,

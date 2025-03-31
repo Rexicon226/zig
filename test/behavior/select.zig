@@ -78,8 +78,8 @@ test "@select compare result" {
         }
 
         fn doTheTest() !void {
-            try expect(@reduce(.And, min(@Vector(4, f32), .{ -1, 2, -3, 4 }, .{ 1, -2, 3, -4 }) == @Vector(4, f32){ -1, -2, -3, -4 }));
-            try expect(@reduce(.And, min(@Vector(2, f64), .{ -1, 2 }, .{ 1, -2 }) == @Vector(2, f64){ -1, -2 }));
+            try expect(@reduce(.@"and", min(@Vector(4, f32), .{ -1, 2, -3, 4 }, .{ 1, -2, 3, -4 }) == @Vector(4, f32){ -1, -2, -3, -4 }));
+            try expect(@reduce(.@"and", min(@Vector(2, f64), .{ -1, 2 }, .{ 1, -2 }) == @Vector(2, f64){ -1, -2 }));
         }
     };
 

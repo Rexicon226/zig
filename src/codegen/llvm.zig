@@ -10407,19 +10407,19 @@ pub const FuncGen = struct {
         const llvm_scalar_ty = try o.lowerType(scalar_ty);
 
         switch (reduce.operation) {
-            .And, .Or, .Xor => return self.wip.callIntrinsic(.normal, .none, switch (reduce.operation) {
-                .And => .@"vector.reduce.and",
-                .Or => .@"vector.reduce.or",
-                .Xor => .@"vector.reduce.xor",
+            .@"and", .@"or", .xor => return self.wip.callIntrinsic(.normal, .none, switch (reduce.operation) {
+                .@"and" => .@"vector.reduce.and",
+                .@"or" => .@"vector.reduce.or",
+                .xor => .@"vector.reduce.xor",
                 else => unreachable,
             }, &.{llvm_operand_ty}, &.{operand}, ""),
-            .Min, .Max => switch (scalar_ty.zigTypeTag(zcu)) {
+            .min, .max => switch (scalar_ty.zigTypeTag(zcu)) {
                 .int => return self.wip.callIntrinsic(.normal, .none, switch (reduce.operation) {
-                    .Min => if (scalar_ty.isSignedInt(zcu))
+                    .min => if (scalar_ty.isSignedInt(zcu))
                         .@"vector.reduce.smin"
                     else
                         .@"vector.reduce.umin",
-                    .Max => if (scalar_ty.isSignedInt(zcu))
+                    .max => if (scalar_ty.isSignedInt(zcu))
                         .@"vector.reduce.smax"
                     else
                         .@"vector.reduce.umax",
@@ -10427,26 +10427,26 @@ pub const FuncGen = struct {
                 }, &.{llvm_operand_ty}, &.{operand}, ""),
                 .float => if (intrinsicsAllowed(scalar_ty, target))
                     return self.wip.callIntrinsic(fast, .none, switch (reduce.operation) {
-                        .Min => .@"vector.reduce.fmin",
-                        .Max => .@"vector.reduce.fmax",
+                        .min => .@"vector.reduce.fmin",
+                        .max => .@"vector.reduce.fmax",
                         else => unreachable,
                     }, &.{llvm_operand_ty}, &.{operand}, ""),
                 else => unreachable,
             },
-            .Add, .Mul => switch (scalar_ty.zigTypeTag(zcu)) {
+            .add, .mul => switch (scalar_ty.zigTypeTag(zcu)) {
                 .int => return self.wip.callIntrinsic(.normal, .none, switch (reduce.operation) {
-                    .Add => .@"vector.reduce.add",
-                    .Mul => .@"vector.reduce.mul",
+                    .add => .@"vector.reduce.add",
+                    .mul => .@"vector.reduce.mul",
                     else => unreachable,
                 }, &.{llvm_operand_ty}, &.{operand}, ""),
                 .float => if (intrinsicsAllowed(scalar_ty, target))
                     return self.wip.callIntrinsic(fast, .none, switch (reduce.operation) {
-                        .Add => .@"vector.reduce.fadd",
-                        .Mul => .@"vector.reduce.fmul",
+                        .add => .@"vector.reduce.fadd",
+                        .mul => .@"vector.reduce.fmul",
                         else => unreachable,
                     }, &.{llvm_operand_ty}, &.{ switch (reduce.operation) {
-                        .Add => try o.builder.fpValue(llvm_scalar_ty, -0.0),
-                        .Mul => try o.builder.fpValue(llvm_scalar_ty, 1.0),
+                        .add => try o.builder.fpValue(llvm_scalar_ty, -0.0),
+                        .mul => try o.builder.fpValue(llvm_scalar_ty, 1.0),
                         else => unreachable,
                     }, operand }, ""),
                 else => unreachable,
@@ -10457,16 +10457,16 @@ pub const FuncGen = struct {
         // Use a manual loop over a softfloat call instead.
         const float_bits = scalar_ty.floatBits(target);
         const fn_name = switch (reduce.operation) {
-            .Min => try o.builder.strtabStringFmt("{s}fmin{s}", .{
+            .min => try o.builder.strtabStringFmt("{s}fmin{s}", .{
                 libcFloatPrefix(float_bits), libcFloatSuffix(float_bits),
             }),
-            .Max => try o.builder.strtabStringFmt("{s}fmax{s}", .{
+            .max => try o.builder.strtabStringFmt("{s}fmax{s}", .{
                 libcFloatPrefix(float_bits), libcFloatSuffix(float_bits),
             }),
-            .Add => try o.builder.strtabStringFmt("__add{s}f3", .{
+            .add => try o.builder.strtabStringFmt("__add{s}f3", .{
                 compilerRtFloatAbbrev(float_bits),
             }),
-            .Mul => try o.builder.strtabStringFmt("__mul{s}f3", .{
+            .mul => try o.builder.strtabStringFmt("__mul{s}f3", .{
                 compilerRtFloatAbbrev(float_bits),
             }),
             else => unreachable,
@@ -10477,25 +10477,25 @@ pub const FuncGen = struct {
         const init_val = switch (llvm_scalar_ty) {
             .i16 => try o.builder.intValue(.i16, @as(i16, @bitCast(
                 @as(f16, switch (reduce.operation) {
-                    .Min, .Max => std.math.nan(f16),
-                    .Add => -0.0,
-                    .Mul => 1.0,
+                    .min, .max => std.math.nan(f16),
+                    .add => -0.0,
+                    .mul => 1.0,
                     else => unreachable,
                 }),
             ))),
             .i80 => try o.builder.intValue(.i80, @as(i80, @bitCast(
                 @as(f80, switch (reduce.operation) {
-                    .Min, .Max => std.math.nan(f80),
-                    .Add => -0.0,
-                    .Mul => 1.0,
+                    .min, .max => std.math.nan(f80),
+                    .add => -0.0,
+                    .mul => 1.0,
                     else => unreachable,
                 }),
             ))),
             .i128 => try o.builder.intValue(.i128, @as(i128, @bitCast(
                 @as(f128, switch (reduce.operation) {
-                    .Min, .Max => std.math.nan(f128),
-                    .Add => -0.0,
-                    .Mul => 1.0,
+                    .min, .max => std.math.nan(f128),
+                    .add => -0.0,
+                    .mul => 1.0,
                     else => unreachable,
                 }),
             ))),
@@ -11463,15 +11463,15 @@ fn toLlvmAtomicRmwBinOp(
     is_float: bool,
 ) Builder.Function.Instruction.AtomicRmw.Operation {
     return switch (op) {
-        .Xchg => .xchg,
-        .Add => if (is_float) .fadd else return .add,
-        .Sub => if (is_float) .fsub else return .sub,
-        .And => .@"and",
-        .Nand => .nand,
-        .Or => .@"or",
-        .Xor => .xor,
-        .Max => if (is_float) .fmax else if (is_signed) .max else return .umax,
-        .Min => if (is_float) .fmin else if (is_signed) .min else return .umin,
+        .xchg => .xchg,
+        .add => if (is_float) .fadd else return .add,
+        .sub => if (is_float) .fsub else return .sub,
+        .@"and" => .@"and",
+        .nand => .nand,
+        .@"or" => .@"or",
+        .xor => .xor,
+        .max => if (is_float) .fmax else if (is_signed) .max else return .umax,
+        .min => if (is_float) .fmin else if (is_signed) .min else return .umin,
     };
 }
 

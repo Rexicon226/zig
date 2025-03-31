@@ -5523,15 +5523,15 @@ fn cmpxchgWeakButNotAtomic(comptime T: type, ptr: *T, expected_value: T, new_val
       </p>
       <ul>
           <li>Every operator is available for {#link|integer|Integers#} vectors.</li>
-          <li>{#syntax#}.And{#endsyntax#}, {#syntax#}.Or{#endsyntax#},
-            {#syntax#}.Xor{#endsyntax#} are additionally available for
+          <li>{#syntax#}.@"and"{#endsyntax#}, {#syntax#}.@"or"{#endsyntax#},
+            {#syntax#}.xor{#endsyntax#} are additionally available for
             {#syntax#}bool{#endsyntax#} vectors,</li>
-          <li>{#syntax#}.Min{#endsyntax#}, {#syntax#}.Max{#endsyntax#},
-            {#syntax#}.Add{#endsyntax#}, {#syntax#}.Mul{#endsyntax#} are
+          <li>{#syntax#}.min{#endsyntax#}, {#syntax#}.max{#endsyntax#},
+            {#syntax#}.add{#endsyntax#}, {#syntax#}.mul{#endsyntax#} are
             additionally available for {#link|floating point|Floats#} vectors,</li>
       </ul>
       <p>
-      Note that {#syntax#}.Add{#endsyntax#} and {#syntax#}.Mul{#endsyntax#}
+      Note that {#syntax#}.add{#endsyntax#} and {#syntax#}.mul{#endsyntax#}
       reductions on integral types are wrapping; when applied on floating point
       types the operation associativity is preserved, unless the float mode is
       set to {#syntax#}Optimized{#endsyntax#}.

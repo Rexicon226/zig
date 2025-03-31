@@ -74,7 +74,7 @@ const SpinlockTable = struct {
                         : "memory"
                     );
                 } else flag: {
-                    break :flag @atomicRmw(@TypeOf(self.v), &self.v, .Xchg, .Locked, .acquire);
+                    break :flag @atomicRmw(@TypeOf(self.v), &self.v, .xchg, .Locked, .acquire);
                 };
 
                 switch (flag) {
@@ -270,7 +270,7 @@ inline fn atomic_exchange_N(comptime T: type, ptr: *T, val: T, model: i32) T {
         };
         return wideUpdate(T, ptr, val, Updater.update);
     } else {
-        return @atomicRmw(T, ptr, .Xchg, val, .seq_cst);
+        return @atomicRmw(T, ptr, .xchg, val, .seq_cst);
     }
 }
 
@@ -348,14 +348,14 @@ inline fn fetch_op_N(comptime T: type, comptime op: std.builtin.AtomicRmwOp, ptr
     const Updater = struct {
         fn update(new: T, old: T) T {
             return switch (op) {
-                .Add => old +% new,
-                .Sub => old -% new,
-                .And => old & new,
-                .Nand => ~(old & new),
-                .Or => old | new,
-                .Xor => old ^ new,
-                .Max => @max(old, new),
-                .Min => @min(old, new),
+                .add => old +% new,
+                .sub => old -% new,
+                .@"and" => old & new,
+                .nand => ~(old & new),
+                .@"or" => old | new,
+                .xor => old ^ new,
+                .max => @max(old, new),
+                .min => @min(old, new),
                 else => @compileError("unsupported atomic op"),
             };
         }
@@ -377,163 +377,163 @@ inline fn fetch_op_N(comptime T: type, comptime op: std.builtin.AtomicRmwOp, ptr
 }
 
 fn __atomic_fetch_add_1(ptr: *u8, val: u8, model: i32) callconv(.c) u8 {
-    return fetch_op_N(u8, .Add, ptr, val, model);
+    return fetch_op_N(u8, .add, ptr, val, model);
 }
 
 fn __atomic_fetch_add_2(ptr: *u16, val: u16, model: i32) callconv(.c) u16 {
-    return fetch_op_N(u16, .Add, ptr, val, model);
+    return fetch_op_N(u16, .add, ptr, val, model);
 }
 
 fn __atomic_fetch_add_4(ptr: *u32, val: u32, model: i32) callconv(.c) u32 {
-    return fetch_op_N(u32, .Add, ptr, val, model);
+    return fetch_op_N(u32, .add, ptr, val, model);
 }
 
 fn __atomic_fetch_add_8(ptr: *u64, val: u64, model: i32) callconv(.c) u64 {
-    return fetch_op_N(u64, .Add, ptr, val, model);
+    return fetch_op_N(u64, .add, ptr, val, model);
 }
 
 fn __atomic_fetch_add_16(ptr: *u128, val: u128, model: i32) callconv(.c) u128 {
-    return fetch_op_N(u128, .Add, ptr, val, model);
+    return fetch_op_N(u128, .add, ptr, val, model);
 }
 
 fn __atomic_fetch_sub_1(ptr: *u8, val: u8, model: i32) callconv(.c) u8 {
-    return fetch_op_N(u8, .Sub, ptr, val, model);
+    return fetch_op_N(u8, .sub, ptr, val, model);
 }
 
 fn __atomic_fetch_sub_2(ptr: *u16, val: u16, model: i32) callconv(.c) u16 {
-    return fetch_op_N(u16, .Sub, ptr, val, model);
+    return fetch_op_N(u16, .sub, ptr, val, model);
 }
 
 fn __atomic_fetch_sub_4(ptr: *u32, val: u32, model: i32) callconv(.c) u32 {
-    return fetch_op_N(u32, .Sub, ptr, val, model);
+    return fetch_op_N(u32, .sub, ptr, val, model);
 }
 
 fn __atomic_fetch_sub_8(ptr: *u64, val: u64, model: i32) callconv(.c) u64 {
-    return fetch_op_N(u64, .Sub, ptr, val, model);
+    return fetch_op_N(u64, .sub, ptr, val, model);
 }
 
 fn __atomic_fetch_sub_16(ptr: *u128, val: u128, model: i32) callconv(.c) u128 {
-    return fetch_op_N(u128, .Sub, ptr, val, model);
+    return fetch_op_N(u128, .sub, ptr, val, model);
 }
 
 fn __atomic_fetch_and_1(ptr: *u8, val: u8, model: i32) callconv(.c) u8 {
-    return fetch_op_N(u8, .And, ptr, val, model);
+    return fetch_op_N(u8, .@"and", ptr, val, model);
 }
 
 fn __atomic_fetch_and_2(ptr: *u16, val: u16, model: i32) callconv(.c) u16 {
-    return fetch_op_N(u16, .And, ptr, val, model);
+    return fetch_op_N(u16, .@"and", ptr, val, model);
 }
 
 fn __atomic_fetch_and_4(ptr: *u32, val: u32, model: i32) callconv(.c) u32 {
-    return fetch_op_N(u32, .And, ptr, val, model);
+    return fetch_op_N(u32, .@"and", ptr, val, model);
 }
 
 fn __atomic_fetch_and_8(ptr: *u64, val: u64, model: i32) callconv(.c) u64 {
-    return fetch_op_N(u64, .And, ptr, val, model);
+    return fetch_op_N(u64, .@"and", ptr, val, model);
 }
 
 fn __atomic_fetch_and_16(ptr: *u128, val: u128, model: i32) callconv(.c) u128 {
-    return fetch_op_N(u128, .And, ptr, val, model);
+    return fetch_op_N(u128, .@"and", ptr, val, model);
 }
 
 fn __atomic_fetch_or_1(ptr: *u8, val: u8, model: i32) callconv(.c) u8 {
-    return fetch_op_N(u8, .Or, ptr, val, model);
+    return fetch_op_N(u8, .@"or", ptr, val, model);
 }
 
 fn __atomic_fetch_or_2(ptr: *u16, val: u16, model: i32) callconv(.c) u16 {
-    return fetch_op_N(u16, .Or, ptr, val, model);
+    return fetch_op_N(u16, .@"or", ptr, val, model);
 }
 
 fn __atomic_fetch_or_4(ptr: *u32, val: u32, model: i32) callconv(.c) u32 {
-    return fetch_op_N(u32, .Or, ptr, val, model);
+    return fetch_op_N(u32, .@"or", ptr, val, model);
 }
 
 fn __atomic_fetch_or_8(ptr: *u64, val: u64, model: i32) callconv(.c) u64 {
-    return fetch_op_N(u64, .Or, ptr, val, model);
+    return fetch_op_N(u64, .@"or", ptr, val, model);
 }
 
 fn __atomic_fetch_or_16(ptr: *u128, val: u128, model: i32) callconv(.c) u128 {
-    return fetch_op_N(u128, .Or, ptr, val, model);
+    return fetch_op_N(u128, .@"or", ptr, val, model);
 }
 
 fn __atomic_fetch_xor_1(ptr: *u8, val: u8, model: i32) callconv(.c) u8 {
-    return fetch_op_N(u8, .Xor, ptr, val, model);
+    return fetch_op_N(u8, .xor, ptr, val, model);
 }
 
 fn __atomic_fetch_xor_2(ptr: *u16, val: u16, model: i32) callconv(.c) u16 {
-    return fetch_op_N(u16, .Xor, ptr, val, model);
+    return fetch_op_N(u16, .xor, ptr, val, model);
 }
 
 fn __atomic_fetch_xor_4(ptr: *u32, val: u32, model: i32) callconv(.c) u32 {
-    return fetch_op_N(u32, .Xor, ptr, val, model);
+    return fetch_op_N(u32, .xor, ptr, val, model);
 }
 
 fn __atomic_fetch_xor_8(ptr: *u64, val: u64, model: i32) callconv(.c) u64 {
-    return fetch_op_N(u64, .Xor, ptr, val, model);
+    return fetch_op_N(u64, .xor, ptr, val, model);
 }
 
 fn __atomic_fetch_xor_16(ptr: *u128, val: u128, model: i32) callconv(.c) u128 {
-    return fetch_op_N(u128, .Xor, ptr, val, model);
+    return fetch_op_N(u128, .xor, ptr, val, model);
 }
 
 fn __atomic_fetch_nand_1(ptr: *u8, val: u8, model: i32) callconv(.c) u8 {
-    return fetch_op_N(u8, .Nand, ptr, val, model);
+    return fetch_op_N(u8, .nand, ptr, val, model);
 }
 
 fn __atomic_fetch_nand_2(ptr: *u16, val: u16, model: i32) callconv(.c) u16 {
-    return fetch_op_N(u16, .Nand, ptr, val, model);
+    return fetch_op_N(u16, .nand, ptr, val, model);
 }
 
 fn __atomic_fetch_nand_4(ptr: *u32, val: u32, model: i32) callconv(.c) u32 {
-    return fetch_op_N(u32, .Nand, ptr, val, model);
+    return fetch_op_N(u32, .nand, ptr, val, model);
 }
 
 fn __atomic_fetch_nand_8(ptr: *u64, val: u64, model: i32) callconv(.c) u64 {
-    return fetch_op_N(u64, .Nand, ptr, val, model);
+    return fetch_op_N(u64, .nand, ptr, val, model);
 }
 
 fn __atomic_fetch_nand_16(ptr: *u128, val: u128, model: i32) callconv(.c) u128 {
-    return fetch_op_N(u128, .Nand, ptr, val, model);
+    return fetch_op_N(u128, .nand, ptr, val, model);
 }
 
 fn __atomic_fetch_umax_1(ptr: *u8, val: u8, model: i32) callconv(.c) u8 {
-    return fetch_op_N(u8, .Max, ptr, val, model);
+    return fetch_op_N(u8, .max, ptr, val, model);
 }
 
 fn __atomic_fetch_umax_2(ptr: *u16, val: u16, model: i32) callconv(.c) u16 {
-    return fetch_op_N(u16, .Max, ptr, val, model);
+    return fetch_op_N(u16, .max, ptr, val, model);
 }
 
 fn __atomic_fetch_umax_4(ptr: *u32, val: u32, model: i32) callconv(.c) u32 {
-    return fetch_op_N(u32, .Max, ptr, val, model);
+    return fetch_op_N(u32, .max, ptr, val, model);
 }
 
 fn __atomic_fetch_umax_8(ptr: *u64, val: u64, model: i32) callconv(.c) u64 {
-    return fetch_op_N(u64, .Max, ptr, val, model);
+    return fetch_op_N(u64, .max, ptr, val, model);
 }
 
 fn __atomic_fetch_umax_16(ptr: *u128, val: u128, model: i32) callconv(.c) u128 {
-    return fetch_op_N(u128, .Max, ptr, val, model);
+    return fetch_op_N(u128, .max, ptr, val, model);
 }
 
 fn __atomic_fetch_umin_1(ptr: *u8, val: u8, model: i32) callconv(.c) u8 {
-    return fetch_op_N(u8, .Min, ptr, val, model);
+    return fetch_op_N(u8, .min, ptr, val, model);
 }
 
 fn __atomic_fetch_umin_2(ptr: *u16, val: u16, model: i32) callconv(.c) u16 {
-    return fetch_op_N(u16, .Min, ptr, val, model);
+    return fetch_op_N(u16, .min, ptr, val, model);
 }
 
 fn __atomic_fetch_umin_4(ptr: *u32, val: u32, model: i32) callconv(.c) u32 {
-    return fetch_op_N(u32, .Min, ptr, val, model);
+    return fetch_op_N(u32, .min, ptr, val, model);
 }
 
 fn __atomic_fetch_umin_8(ptr: *u64, val: u64, model: i32) callconv(.c) u64 {
-    return fetch_op_N(u64, .Min, ptr, val, model);
+    return fetch_op_N(u64, .min, ptr, val, model);
 }
 
 fn __atomic_fetch_umin_16(ptr: *u128, val: u128, model: i32) callconv(.c) u128 {
-    return fetch_op_N(u128, .Min, ptr, val, model);
+    return fetch_op_N(u128, .min, ptr, val, model);
 }
 
 comptime {

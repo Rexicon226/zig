@@ -465,7 +465,7 @@ fn start1() u8 {
 }
 
 fn start2(ctx: *i32) u8 {
-    _ = @atomicRmw(i32, ctx, AtomicRmwOp.Add, 1, AtomicOrder.seq_cst);
+    _ = @atomicRmw(i32, ctx, .add, 1, .seq_cst);
     return 0;
 }
 

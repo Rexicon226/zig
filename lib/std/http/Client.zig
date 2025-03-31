@@ -598,7 +598,7 @@ pub const Response = struct {
             const nnn: @Vector(3, u8) = text.*;
             const zero: @Vector(3, u8) = .{ '0', '0', '0' };
             const mmm: @Vector(3, u10) = .{ 100, 10, 1 };
-            return @reduce(.Add, @as(@Vector(3, u10), nnn -% zero) *% mmm);
+            return @reduce(.add, @as(@Vector(3, u10), nnn -% zero) *% mmm);
         }
         return std.fmt.parseInt(u10, text, 10) catch unreachable;
     }

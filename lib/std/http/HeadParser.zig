@@ -121,7 +121,7 @@ pub fn feed(p: *HeadParser, bytes: []const u8) usize {
                         const matches_n: BitVector = @bitCast(v == @as(Vector, @splat('\n')));
                         const matches_or: SizeVector = matches_r | matches_n;
 
-                        break :matches @reduce(.Add, matches_or);
+                        break :matches @reduce(.add, matches_or);
                     } else matches: {
                         var matches: u8 = 0;
                         for (chunk) |byte| switch (byte) {

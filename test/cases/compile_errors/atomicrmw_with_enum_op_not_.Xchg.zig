@@ -6,11 +6,11 @@ export fn entry() void {
         d,
     };
     var x: E = .a;
-    _ = @atomicRmw(E, &x, .Add, .b, .seq_cst);
+    _ = @atomicRmw(E, &x, .add, .b, .seq_cst);
 }
 
 // error
 // backend=stage2
 // target=native
 //
-// :9:28: error: @atomicRmw with enum only allowed with .Xchg
+// :9:28: error: @atomicRmw with enum only allowed with .xchg

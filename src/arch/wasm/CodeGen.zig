@@ -7269,9 +7269,9 @@ fn airAtomicRmw(cg: *CodeGen, inst: Air.Inst.Index) InnerError!void {
 
     if (cg.useAtomicFeature()) {
         switch (op) {
-            .Max,
-            .Min,
-            .Nand,
+            .max,
+            .min,
+            .nand,
             => {
                 const tmp = try cg.load(ptr, ty, 0);
                 const value = try tmp.toLocal(cg, ty);
@@ -7281,7 +7281,7 @@ fn airAtomicRmw(cg: *CodeGen, inst: Air.Inst.Index) InnerError!void {
 
                 try cg.emitWValue(ptr);
                 try cg.emitWValue(value);
-                if (op == .Nand) {
+                if (op == .nand) {
                     const wasm_bits = toWasmBits(@intCast(ty.bitSize(zcu))).?;
 
                     const and_res = try cg.binOp(value, operand, ty, .@"and");
@@ -7295,7 +7295,7 @@ fn airAtomicRmw(cg: *CodeGen, inst: Air.Inst.Index) InnerError!void {
                 } else {
                     try cg.emitWValue(value);
                     try cg.emitWValue(operand);
-                    _ = try cg.cmp(value, operand, ty, if (op == .Max) .gt else .lt);
+                    _ = try cg.cmp(value, operand, ty, if (op == .max) .gt else .lt);
                     try cg.addTag(.select);
                 }
                 try cg.addAtomicMemArg(
@@ -7329,39 +7329,39 @@ fn airAtomicRmw(cg: *CodeGen, inst: Air.Inst.Index) InnerError!void {
                 try cg.emitWValue(operand);
                 const tag: std.wasm.AtomicsOpcode = switch (ty.abiSize(zcu)) {
                     1 => switch (op) {
-                        .Xchg => .i32_atomic_rmw8_xchg_u,
-                        .Add => .i32_atomic_rmw8_add_u,
-                        .Sub => .i32_atomic_rmw8_sub_u,
-                        .And => .i32_atomic_rmw8_and_u,
-                        .Or => .i32_atomic_rmw8_or_u,
-                        .Xor => .i32_atomic_rmw8_xor_u,
+                        .xchg => .i32_atomic_rmw8_xchg_u,
+                        .add => .i32_atomic_rmw8_add_u,
+                        .sub => .i32_atomic_rmw8_sub_u,
+                        .@"and" => .i32_atomic_rmw8_and_u,
+                        .@"or" => .i32_atomic_rmw8_or_u,
+                        .xor => .i32_atomic_rmw8_xor_u,
                         else => unreachable,
                     },
                     2 => switch (op) {
-                        .Xchg => .i32_atomic_rmw16_xchg_u,
-                        .Add => .i32_atomic_rmw16_add_u,
-                        .Sub => .i32_atomic_rmw16_sub_u,
-                        .And => .i32_atomic_rmw16_and_u,
-                        .Or => .i32_atomic_rmw16_or_u,
-                        .Xor => .i32_atomic_rmw16_xor_u,
+                        .xchg => .i32_atomic_rmw16_xchg_u,
+                        .add => .i32_atomic_rmw16_add_u,
+                        .sub => .i32_atomic_rmw16_sub_u,
+                        .@"and" => .i32_atomic_rmw16_and_u,
+                        .@"or" => .i32_atomic_rmw16_or_u,
+                        .xor => .i32_atomic_rmw16_xor_u,
                         else => unreachable,
                     },
                     4 => switch (op) {
-                        .Xchg => .i32_atomic_rmw_xchg,
-                        .Add => .i32_atomic_rmw_add,
-                        .Sub => .i32_atomic_rmw_sub,
-                        .And => .i32_atomic_rmw_and,
-                        .Or => .i32_atomic_rmw_or,
-                        .Xor => .i32_atomic_rmw_xor,
+                        .xchg => .i32_atomic_rmw_xchg,
+                        .add => .i32_atomic_rmw_add,
+                        .sub => .i32_atomic_rmw_sub,
+                        .@"and" => .i32_atomic_rmw_and,
+                        .@"or" => .i32_atomic_rmw_or,
+                        .xor => .i32_atomic_rmw_xor,
                         else => unreachable,
                     },
                     8 => switch (op) {
-                        .Xchg => .i64_atomic_rmw_xchg,
-                        .Add => .i64_atomic_rmw_add,
-                        .Sub => .i64_atomic_rmw_sub,
-                        .And => .i64_atomic_rmw_and,
-                        .Or => .i64_atomic_rmw_or,
-                        .Xor => .i64_atomic_rmw_xor,
+                        .xchg => .i64_atomic_rmw_xchg,
+                        .add => .i64_atomic_rmw_add,
+                        .sub => .i64_atomic_rmw_sub,
+                        .@"and" => .i64_atomic_rmw_and,
+                        .@"or" => .i64_atomic_rmw_or,
+                        .xor => .i64_atomic_rmw_xor,
                         else => unreachable,
                     },
                     else => |size| return cg.fail("TODO: Implement `@atomicRmw` for types with abi size {d}", .{size}),
@@ -7378,40 +7378,40 @@ fn airAtomicRmw(cg: *CodeGen, inst: Air.Inst.Index) InnerError!void {
         const result = try loaded.toLocal(cg, ty);
 
         switch (op) {
-            .Xchg => {
+            .xchg => {
                 try cg.store(ptr, operand, ty, 0);
             },
-            .Add,
-            .Sub,
-            .And,
-            .Or,
-            .Xor,
+            .add,
+            .sub,
+            .@"and",
+            .@"or",
+            .xor,
             => {
                 try cg.emitWValue(ptr);
                 _ = try cg.binOp(result, operand, ty, switch (op) {
-                    .Add => .add,
-                    .Sub => .sub,
-                    .And => .@"and",
-                    .Or => .@"or",
-                    .Xor => .xor,
+                    .add => .add,
+                    .sub => .sub,
+                    .@"and" => .@"and",
+                    .@"or" => .@"or",
+                    .xor => .xor,
                     else => unreachable,
                 });
-                if (ty.isInt(zcu) and (op == .Add or op == .Sub)) {
+                if (ty.isInt(zcu) and (op == .add or op == .sub)) {
                     _ = try cg.wrapOperand(.stack, ty);
                 }
                 try cg.store(.stack, .stack, ty, ptr.offset());
             },
-            .Max,
-            .Min,
+            .max,
+            .min,
             => {
                 try cg.emitWValue(ptr);
                 try cg.emitWValue(result);
                 try cg.emitWValue(operand);
-                _ = try cg.cmp(result, operand, ty, if (op == .Max) .gt else .lt);
+                _ = try cg.cmp(result, operand, ty, if (op == .max) .gt else .lt);
                 try cg.addTag(.select);
                 try cg.store(.stack, .stack, ty, ptr.offset());
             },
-            .Nand => {
+            .nand => {
                 const wasm_bits = toWasmBits(@intCast(ty.bitSize(zcu))).?;
 
                 try cg.emitWValue(ptr);
