@@ -1148,6 +1148,89 @@ pub fn indexOfSentinel(comptime T: type, comptime sentinel: T, p: [*:sentinel]co
                     i += block_len;
                 }
             },
+            .riscv64 => if (builtin.cpu.has(.riscv, .v)) return switch (@bitSizeOf(T)) {
+                8 => asm volatile (
+                    \\  mv a3, %[ptr]                     # Save start
+                    \\  vsetvli a1, zero, e8, m8, ta, ma  # Vector of bytes of maximum length
+                    \\
+                    \\1:
+                    \\  vle8ff.v     v8, (a3)             # Load bytes
+                    \\  li           a1, %[sentinel]      # Load sentinel into register
+                    \\  vmseq.vx     v0, v8, a1           # Set v0[i] where v8[i] = sentinel
+                    \\  csrr         a1, vl               # Get bytes read
+                    \\  vfirst.m     a2, v0               # Find first set bit
+                    \\  add          a3, a3, a1           # Bump pointer
+                    \\  bltz         a2, 1b               # Not found?
+                    \\
+                    \\  add a4,        %[ptr], a1         # Sum start + bump
+                    \\  add a3,        a3,     a2         # Add index
+                    \\  sub %[result], a3,     a4         # Subtract start address + bump
+                    : [result] "=r" (-> usize),
+                    : [ptr] "r" (p),
+                      [sentinel] "i" (sentinel),
+                ),
+                16 => asm volatile (
+                    \\  mv a3, %[ptr]
+                    \\  vsetvli a1, zero, e16, m8, ta, ma
+                    \\
+                    \\1:
+                    \\  vle16ff.v    v8, (a3)
+                    \\  li           a1, %[sentinel]
+                    \\  vmseq.vx     v0, v8, a1
+                    \\  csrr         a1, vl
+                    \\  vfirst.m     a2, v0
+                    \\  add          a3, a3, a1
+                    \\  bltz         a2, 1b
+                    \\
+                    \\  add a4,        %[ptr], a1
+                    \\  add a3,        a3,     a2
+                    \\  sub %[result], a3,     a4
+                    : [result] "=r" (-> usize),
+                    : [ptr] "r" (p),
+                      [sentinel] "i" (sentinel),
+                ),
+                32 => asm volatile (
+                    \\  mv a3, %[ptr]
+                    \\  vsetvli a1, zero, e32, m8, ta, ma
+                    \\
+                    \\1:
+                    \\  vle32ff.v    v8, (a3)
+                    \\  li           a1, %[sentinel]
+                    \\  vmseq.vx     v0, v8, a1
+                    \\  csrr         a1, vl
+                    \\  vfirst.m     a2, v0
+                    \\  add          a3, a3, a1
+                    \\  bltz         a2, 1b
+                    \\
+                    \\  add a4,        %[ptr], a1
+                    \\  add a3,        a3,     a2
+                    \\  sub %[result], a3,     a4
+                    : [result] "=r" (-> usize),
+                    : [ptr] "r" (p),
+                      [sentinel] "i" (sentinel),
+                ),
+                64 => asm volatile (
+                    \\  mv a3, %[ptr]
+                    \\  vsetvli a1, zero, e64, m8, ta, ma
+                    \\
+                    \\1:
+                    \\  vle64ff.v    v8, (a3)
+                    \\  li           a1, %[sentinel]
+                    \\  vmseq.vx     v0, v8, a1
+                    \\  csrr         a1, vl
+                    \\  vfirst.m     a2, v0
+                    \\  add          a3, a3, a1
+                    \\  bltz         a2, 1b
+                    \\
+                    \\  add a4,        %[ptr], a1
+                    \\  add a3,        a3,     a2
+                    \\  sub %[result], a3,     a4
+                    : [result] "=r" (-> usize),
+                    : [ptr] "r" (p),
+                      [sentinel] "i" (sentinel),
+                ),
+                else => {},
+            },
             else => {},
         }
     }
