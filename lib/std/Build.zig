@@ -857,6 +857,7 @@ pub const TestOptions = struct {
     name: []const u8 = "test",
     root_module: *Module,
     max_rss: usize = 0,
+    timeout: ?u64 = null,
     filters: []const []const u8 = &.{},
     test_runner: ?Step.Compile.TestRunner = null,
     use_llvm: ?bool = null,
@@ -887,6 +888,7 @@ pub fn addTest(b: *Build, options: TestOptions) *Step.Compile {
         .use_llvm = options.use_llvm,
         .use_lld = options.use_lld,
         .zig_lib_dir = options.zig_lib_dir,
+        .timeout = options.timeout,
     });
 }
 

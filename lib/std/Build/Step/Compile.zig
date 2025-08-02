@@ -247,6 +247,15 @@ zig_process: ?*Step.ZigProcess,
 /// builtin fuzzer, see the `fuzz` flag in `Module`.
 sanitize_coverage_trace_pc_guard: ?bool = null,
 
+/// The timeout used when running a test Compile. By default timeouts are turned
+/// off, set this field in order to enable them.
+///
+/// The timeout is *per test*, however it is the same for each test ran in the
+/// compilation. If a test takes too long to run, the process will be killed
+/// and the test that was running marked as "timed out". The test process
+/// will then be restarted and start at the next test.
+timeout: ?u64 = null,
+
 pub const ExpectedCompileErrors = union(enum) {
     contains: []const u8,
     exact: []const []const u8,
@@ -273,6 +282,7 @@ pub const Options = struct {
     linkage: ?std.builtin.LinkMode = null,
     version: ?std.SemanticVersion = null,
     max_rss: usize = 0,
+    timeout: ?u64 = null,
     filters: []const []const u8 = &.{},
     test_runner: ?TestRunner = null,
     use_llvm: ?bool = null,
@@ -444,6 +454,8 @@ pub fn create(owner: *std.Build, options: Options) *Compile {
         .use_lld = options.use_lld,
 
         .zig_process = null,
+
+        .timeout = options.timeout,
     };
 
     if (options.zig_lib_dir) |lp| {

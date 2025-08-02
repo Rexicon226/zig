@@ -676,6 +676,7 @@ fn runStepNames(
     var test_fail_count: usize = 0;
     var test_pass_count: usize = 0;
     var test_leak_count: usize = 0;
+    var test_timeout_count: usize = 0;
     var test_count: usize = 0;
 
     var success_count: usize = 0;
@@ -688,6 +689,7 @@ fn runStepNames(
         test_fail_count += s.test_results.fail_count;
         test_skip_count += s.test_results.skip_count;
         test_leak_count += s.test_results.leak_count;
+        test_timeout_count += s.test_results.timeout_count;
         test_pass_count += s.test_results.passCount();
         test_count += s.test_results.test_count;
 
@@ -749,6 +751,7 @@ fn runStepNames(
         if (test_skip_count > 0) w.print("; {d} skipped", .{test_skip_count}) catch {};
         if (test_fail_count > 0) w.print("; {d} failed", .{test_fail_count}) catch {};
         if (test_leak_count > 0) w.print("; {d} leaked", .{test_leak_count}) catch {};
+        if (test_timeout_count > 0) w.print("; {d} timed out", .{test_timeout_count}) catch {};
 
         w.writeAll("\n") catch {};
 
@@ -950,6 +953,14 @@ fn printStepFailure(
             try ttyconf.setColor(stderr, .red);
             try stderr.print("{d} leaked", .{
                 s.test_results.leak_count,
+            });
+            try ttyconf.setColor(stderr, .reset);
+        }
+        if (s.test_results.timeout_count > 0) {
+            try stderr.writeAll(", ");
+            try ttyconf.setColor(stderr, .red);
+            try stderr.print("{d} timed out", .{
+                s.test_results.timeout_count,
             });
             try ttyconf.setColor(stderr, .reset);
         }

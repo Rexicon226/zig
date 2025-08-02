@@ -34,6 +34,11 @@ pub const Message = struct {
         test_metadata,
         /// Body is a TestResults
         test_results,
+        /// Does not have a body.
+        /// Notifies the build runner that the next test is starting in the test runner.
+        /// Used to ensure that the time used by the build runner to enforce timeouts is
+        /// as accurate as possible under extreme system load.
+        test_started,
         /// Body is a series of strings, delimited by null bytes.
         /// Each string is a prefixed file path.
         /// The first byte indicates the file prefix path (see prefixes fields

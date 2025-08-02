@@ -1085,7 +1085,7 @@ fn runCommand(
 
     var env_map = run.env_map orelse &b.graph.env_map;
 
-    const result = spawnChildAndCollect(run, argv, env_map, has_side_effects, prog_node, fuzz_context) catch |err| term: {
+    const result = spawnChildAndCollect(run, argv, env_map, has_side_effects, prog_node, fuzz_context, 0) catch |err| term: {
         // InvalidExe: cpu arch mismatch
         // FileNotFound: can happen with a wrong dynamic linker path
         if (err == error.InvalidExe or err == error.FileNotFound) interpret: {
@@ -1224,7 +1224,15 @@ fn runCommand(
 
             try Step.handleVerbose2(step.owner, cwd, run.env_map, interp_argv.items);
 
-            break :term spawnChildAndCollect(run, interp_argv.items, env_map, has_side_effects, prog_node, fuzz_context) catch |e| {
+            break :term spawnChildAndCollect(
+                run,
+                interp_argv.items,
+                env_map,
+                has_side_effects,
+                prog_node,
+                fuzz_context,
+                0,
+            ) catch |e| {
                 if (!run.failing_to_execute_foreign_is_an_error) return error.MakeSkipped;
 
                 return step.fail("unable to spawn interpreter {s}: {s}", .{
@@ -1421,6 +1429,7 @@ fn spawnChildAndCollect(
     has_side_effects: bool,
     prog_node: std.Progress.Node,
     fuzz_context: ?FuzzContext,
+    start_index: u32,
 ) !ChildProcResult {
     const b = run.step.owner;
     const arena = b.allocator;
@@ -1481,13 +1490,35 @@ fn spawnChildAndCollect(
         try child.waitForSpawn();
 
         var timer = try std.time.Timer.start();
-
-        const result = if (run.stdio == .zig_test)
-            try evalZigTest(run, &child, prog_node, fuzz_context)
-        else
-            try evalGeneric(run, &child);
-
-        break :t .{ try child.wait(), result, timer.read() };
+        switch (run.stdio) {
+            .zig_test => {
+                const result, const timeout_term = try evalZigTest(
+                    run,
+                    &child,
+                    prog_node,
+                    fuzz_context,
+                    .{
+                        .argv = argv,
+                        .env_map = env_map,
+                        .has_side_effects = has_side_effects,
+                        .start_index = start_index,
+                    },
+                );
+                break :t .{
+                    if (timeout_term) |term| term else try child.wait(),
+                    result,
+                    timer.read(),
+                };
+            },
+            else => {
+                const result = try evalGeneric(run, &child);
+                break :t .{
+                    try child.wait(),
+                    result,
+                    timer.read(),
+                };
+            },
+        }
     };
 
     return .{
@@ -1505,12 +1536,24 @@ const StdIoResult = struct {
     test_metadata: ?TestMetadata,
 };
 
+const ChildContext = struct {
+    argv: []const []const u8,
+    env_map: *EnvMap,
+    has_side_effects: bool,
+    start_index: u32,
+};
+
+const TestError = error{ OutOfMemory, AlreadyTerminated, MakeFailed, TimerUnsupported } ||
+    std.fs.File.OpenError ||
+    std.process.Child.RunError;
+
 fn evalZigTest(
     run: *Run,
     child: *std.process.Child,
     prog_node: std.Progress.Node,
     fuzz_context: ?FuzzContext,
-) !StdIoResult {
+    child_context: ChildContext,
+) TestError!struct { StdIoResult, ?std.process.Child.Term } {
     const gpa = run.step.owner.allocator;
     const arena = run.step.owner.allocator;
 
@@ -1541,22 +1584,83 @@ fn evalZigTest(
     var fail_count: u32 = 0;
     var skip_count: u32 = 0;
     var leak_count: u32 = 0;
+    var timeout_count: u32 = 0;
     var test_count: u32 = 0;
     var log_err_count: u32 = 0;
 
     var metadata: ?TestMetadata = null;
     var coverage_id: ?u64 = null;
 
+    var timer: ?std.time.Timer = null;
+
     var sub_prog_node: ?std.Progress.Node = null;
     defer if (sub_prog_node) |n| n.end();
+
+    const poll_timeout: u64 = std.time.ms_per_s * 100;
 
     const stdout = poller.reader(.stdout);
     const stderr = poller.reader(.stderr);
     const any_write_failed = first_write_failed or poll: while (true) {
         const Header = std.zig.Server.Message.Header;
-        while (stdout.buffered().len < @sizeOf(Header)) if (!try poller.poll()) break :poll false;
+        while (stdout.buffered().len < @sizeOf(Header)) {
+            if (!try poller.pollTimeout(poll_timeout)) break :poll false;
+
+            if (run.producer.?.timeout) |timeout| if (timer) |*running| {
+                const elapsed = running.read();
+                if (elapsed > timeout) {
+                    _ = try child.kill();
+
+                    std.debug.print("timed out!\n", .{});
+
+                    timeout_count += 1;
+                    try run.step.addError(
+                        "'{s}' timed out after {D}",
+                        .{ metadata.?.testName(metadata.?.next_index - 1), timeout },
+                    );
+
+                    const stderr_contents = stderr.buffered();
+                    if (stderr.buffered().len > 0) {
+                        // TODO(sinon): leaks memory each time a test timed out
+                        run.step.result_stderr = try std.mem.concat(arena, u8, &.{
+                            run.step.result_stderr,
+                            stderr_contents,
+                        });
+                    }
+                    const new_results = try spawnChildAndCollect(
+                        run,
+                        child_context.argv,
+                        child_context.env_map,
+                        child_context.has_side_effects,
+                        prog_node,
+                        fuzz_context,
+                        metadata.?.next_index,
+                    );
+                    const new_test_result = new_results.stdio.test_results;
+                    metadata.?.next_index = new_results.stdio.test_metadata.?.next_index;
+
+                    std.debug.print("next index: {}\n", .{metadata.?.next_index});
+
+                    return .{
+                        .{
+                            .stdout = null,
+                            .stderr = null,
+                            .test_results = .{
+                                .test_count = test_count, // no need to update, since the first one we get is the max
+                                .fail_count = new_test_result.fail_count + fail_count,
+                                .skip_count = new_test_result.skip_count + skip_count,
+                                .leak_count = new_test_result.leak_count + leak_count,
+                                .timeout_count = new_test_result.timeout_count + timeout_count,
+                                .log_err_count = new_test_result.log_err_count + log_err_count,
+                            },
+                            .test_metadata = metadata,
+                        },
+                        new_results.term,
+                    };
+                }
+            };
+        }
         const header = stdout.takeStruct(Header, .little) catch unreachable;
-        while (stdout.buffered().len < header.bytes_len) if (!try poller.poll()) break :poll false;
+        while (stdout.buffered().len < header.bytes_len) if (!try poller.pollTimeout(poll_timeout)) break :poll false;
         const body = stdout.take(header.bytes_len) catch unreachable;
         switch (header.tag) {
             .zig_version => {
@@ -1588,9 +1692,10 @@ fn evalZigTest(
                 prog_node.setEstimatedTotalItems(names.len);
                 metadata = .{
                     .string_bytes = try arena.dupe(u8, string_bytes),
+                    .ns_per_test = try arena.alloc(u64, test_count),
                     .names = names_aligned,
                     .expected_panic_msgs = expected_panic_msgs_aligned,
-                    .next_index = 0,
+                    .next_index = child_context.start_index,
                     .prog_node = prog_node,
                 };
 
@@ -1599,12 +1704,21 @@ fn evalZigTest(
                     break :poll true;
                 };
             },
+            .test_started => if (run.step.owner.graph.time_report or run.producer.?.timeout != null) {
+                timer = std.time.Timer.start() catch @panic("std.time.Timer unsupported; cannot ensure timeouts");
+            },
             .test_results => {
                 assert(fuzz_context == null);
                 const md = metadata.?;
 
+                if (timer) |*running| {
+                    const elapsed = running.read();
+                    std.debug.print("elapsed: {D}\n", .{elapsed});
+                }
+                timer = null;
+
                 const TrHdr = std.zig.Server.Message.TestResults;
-                const tr_hdr = @as(*align(1) const TrHdr, @ptrCast(body));
+                const tr_hdr: *align(1) const TrHdr = @ptrCast(body);
                 fail_count +|= @intFromBool(tr_hdr.flags.fail);
                 skip_count +|= @intFromBool(tr_hdr.flags.skip);
                 leak_count +|= @intFromBool(tr_hdr.flags.leak);
@@ -1677,14 +1791,18 @@ fn evalZigTest(
 
     const stderr_contents = std.mem.trim(u8, stderr.buffered(), "\n");
     if (stderr_contents.len > 0) {
-        run.step.result_stderr = try arena.dupe(u8, stderr_contents);
+        // TODO(sinon): this leaks memory if result_stderr already was filled. move to arraylist for it.
+        run.step.result_stderr = try std.mem.concat(arena, u8, &.{
+            run.step.result_stderr,
+            stderr_contents,
+        });
     }
 
     // Send EOF to stdin.
     child.stdin.?.close();
     child.stdin = null;
 
-    return .{
+    const result: StdIoResult = .{
         .stdout = null,
         .stderr = null,
         .test_results = .{
@@ -1692,14 +1810,17 @@ fn evalZigTest(
             .fail_count = fail_count,
             .skip_count = skip_count,
             .leak_count = leak_count,
+            .timeout_count = timeout_count,
             .log_err_count = log_err_count,
         },
         .test_metadata = metadata,
     };
+    return .{ result, null };
 }
 
 const TestMetadata = struct {
     names: []const u32,
+    ns_per_test: []u64,
     expected_panic_msgs: []const u32,
     string_bytes: []const u8,
     next_index: u32,
