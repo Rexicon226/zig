@@ -1585,7 +1585,6 @@ const operTable = std.enums.directEnumArrayDefault(Token.Tag, OperInfo, .{ .prec
     .asterisk = .{ .prec = 70, .tag = .mul },
     .slash = .{ .prec = 70, .tag = .div },
     .percent = .{ .prec = 70, .tag = .mod },
-    .asterisk_asterisk = .{ .prec = 70, .tag = .array_mult },
     .asterisk_percent = .{ .prec = 70, .tag = .mul_wrap },
     .asterisk_pipe = .{ .prec = 70, .tag = .mul_sat },
 });
@@ -1750,59 +1749,6 @@ fn parseTypeExpr(p: *Parse) Error!?Node.Index {
                     } },
                 });
             }
-        },
-        .asterisk_asterisk => {
-            const asterisk = p.nextToken();
-            const mods = try p.parsePtrModifiers();
-            const elem_type = try p.expectTypeExpr();
-            const inner: Node.Index = inner: {
-                if (mods.bit_range_start != .none) {
-                    break :inner try p.addNode(.{
-                        .tag = .ptr_type_bit_range,
-                        .main_token = asterisk,
-                        .data = .{ .extra_and_node = .{
-                            try p.addExtra(Node.PtrTypeBitRange{
-                                .sentinel = .none,
-                                .align_node = mods.align_node.unwrap().?,
-                                .addrspace_node = mods.addrspace_node,
-                                .bit_range_start = mods.bit_range_start.unwrap().?,
-                                .bit_range_end = mods.bit_range_end.unwrap().?,
-                            }),
-                            elem_type,
-                        } },
-                    });
-                } else if (mods.addrspace_node != .none) {
-                    break :inner try p.addNode(.{
-                        .tag = .ptr_type,
-                        .main_token = asterisk,
-                        .data = .{ .extra_and_node = .{
-                            try p.addExtra(Node.PtrType{
-                                .sentinel = .none,
-                                .align_node = mods.align_node,
-                                .addrspace_node = mods.addrspace_node,
-                            }),
-                            elem_type,
-                        } },
-                    });
-                } else {
-                    break :inner try p.addNode(.{
-                        .tag = .ptr_type_aligned,
-                        .main_token = asterisk,
-                        .data = .{ .opt_node_and_node = .{
-                            mods.align_node,
-                            elem_type,
-                        } },
-                    });
-                }
-            };
-            return try p.addNode(.{
-                .tag = .ptr_type_aligned,
-                .main_token = asterisk,
-                .data = .{ .opt_node_and_node = .{
-                    .none,
-                    inner,
-                } },
-            });
         },
         .l_bracket => switch (p.tokenTag(p.tok_i + 1)) {
             .asterisk => {

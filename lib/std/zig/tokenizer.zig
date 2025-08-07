@@ -109,7 +109,6 @@ pub const Token = struct {
         minus_pipe_equal,
         asterisk,
         asterisk_equal,
-        asterisk_asterisk,
         asterisk_percent,
         asterisk_percent_equal,
         asterisk_pipe,
@@ -236,7 +235,6 @@ pub const Token = struct {
                 .minus_pipe_equal => "-|=",
                 .asterisk => "*",
                 .asterisk_equal => "*=",
-                .asterisk_asterisk => "**",
                 .asterisk_percent => "*%",
                 .asterisk_percent_equal => "*%=",
                 .asterisk_pipe => "*|",
@@ -566,10 +564,6 @@ pub const Tokenizer = struct {
                 switch (self.buffer[self.index]) {
                     '=' => {
                         result.tag = .asterisk_equal;
-                        self.index += 1;
-                    },
-                    '*' => {
-                        result.tag = .asterisk_asterisk;
                         self.index += 1;
                     },
                     '%' => continue :state .asterisk_percent,
@@ -1336,31 +1330,6 @@ test "correctly parse pointer assignment" {
         .equal,
         .number_literal,
         .semicolon,
-    });
-}
-
-test "correctly parse pointer dereference followed by asterisk" {
-    try testTokenize("\"b\".* ** 10", &.{
-        .string_literal,
-        .period_asterisk,
-        .asterisk_asterisk,
-        .number_literal,
-    });
-
-    try testTokenize("(\"b\".*)** 10", &.{
-        .l_paren,
-        .string_literal,
-        .period_asterisk,
-        .r_paren,
-        .asterisk_asterisk,
-        .number_literal,
-    });
-
-    try testTokenize("\"b\".*** 10", &.{
-        .string_literal,
-        .invalid_periodasterisks,
-        .asterisk_asterisk,
-        .number_literal,
     });
 }
 

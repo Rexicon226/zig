@@ -251,9 +251,6 @@ pub const Inst = struct {
         /// Array concatenation. `a ++ b`
         /// Uses the `pl_node` union field. Payload is `Bin`.
         array_cat,
-        /// Array multiplication `a ** b`
-        /// Uses the `pl_node` union field. Payload is `ArrayMul`.
-        array_mul,
         /// `[N]T` syntax. No source location provided.
         /// Uses the `pl_node` union field. Payload is `Bin`. lhs is length, rhs is element type.
         array_type,
@@ -1092,7 +1089,6 @@ pub const Inst = struct {
                 .alloc_inferred_comptime_mut,
                 .make_ptr_const,
                 .array_cat,
-                .array_mul,
                 .array_type,
                 .array_type_sentinel,
                 .vector_type,
@@ -1389,7 +1385,6 @@ pub const Inst = struct {
                 .resolve_inferred_alloc,
                 .make_ptr_const,
                 .array_cat,
-                .array_mul,
                 .array_type,
                 .array_type_sentinel,
                 .vector_type,
@@ -1624,7 +1619,6 @@ pub const Inst = struct {
                 .param_anytype = .str_tok,
                 .param_anytype_comptime = .str_tok,
                 .array_cat = .pl_node,
-                .array_mul = .pl_node,
                 .array_type = .pl_node,
                 .array_type_sentinel = .pl_node,
                 .vector_type = .pl_node,
@@ -4106,7 +4100,6 @@ fn findTrackableInner(
         .param_anytype,
         .param_anytype_comptime,
         .array_cat,
-        .array_mul,
         .array_type,
         .array_type_sentinel,
         .vector_type,

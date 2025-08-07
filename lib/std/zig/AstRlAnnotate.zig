@@ -272,13 +272,6 @@ fn expr(astrl: *AstRlAnnotate, node: Ast.Node.Index, block: ?*Block, ri: ResultI
             _ = try astrl.expr(rhs, block, ResultInfo.none);
             return false;
         },
-
-        .array_mult => {
-            const lhs, const rhs = tree.nodeData(node).node_and_node;
-            _ = try astrl.expr(lhs, block, ResultInfo.none);
-            _ = try astrl.expr(rhs, block, ResultInfo.type_only);
-            return false;
-        },
         .error_union, .merge_error_sets => {
             const lhs, const rhs = tree.nodeData(node).node_and_node;
             _ = try astrl.expr(lhs, block, ResultInfo.none);

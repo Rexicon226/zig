@@ -682,7 +682,6 @@ pub fn firstToken(tree: Ast, node: Node.Index) TokenIndex {
         .mul,
         .div,
         .mod,
-        .array_mult,
         .mul_wrap,
         .mul_sat,
         .add,
@@ -919,7 +918,6 @@ pub fn lastToken(tree: Ast, node: Node.Index) TokenIndex {
         .mul,
         .div,
         .mod,
-        .array_mult,
         .mul_wrap,
         .mul_sat,
         .add,
@@ -2120,9 +2118,7 @@ fn fullFnProtoComponents(tree: Ast, info: full.FnProto.Components) full.FnProto 
 
 fn fullPtrTypeComponents(tree: Ast, info: full.PtrType.Components) full.PtrType {
     const size: std.builtin.Type.Pointer.Size = switch (tree.tokenTag(info.main_token)) {
-        .asterisk,
-        .asterisk_asterisk,
-        => .one,
+        .asterisk => .one,
         .l_bracket => switch (tree.tokenTag(info.main_token + 1)) {
             .asterisk => if (tree.tokenTag(info.main_token + 2) == .identifier) .c else .many,
             else => .slice,
@@ -3273,8 +3269,6 @@ pub const Node = struct {
         div,
         /// `lhs % rhs`. The `main_token` field is the `%` token.
         mod,
-        /// `lhs ** rhs`. The `main_token` field is the `**` token.
-        array_mult,
         /// `lhs *% rhs`. The `main_token` field is the `*%` token.
         mul_wrap,
         /// `lhs *| rhs`. The `main_token` field is the `*|` token.
