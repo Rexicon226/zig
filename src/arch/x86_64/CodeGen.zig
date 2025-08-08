@@ -171641,6 +171641,9 @@ fn airShlShrBinOp(self: *CodeGen, inst: Air.Inst.Index) !void {
                                     lhs_ty,
                                     lhs_mcv,
                                 )).register} ** 2;
+
+                                
+
                                 const reg_locks =
                                     self.register_manager.lockRegs(2, .{ dst_reg, lhs_reg });
                                 defer for (reg_locks) |reg_lock| if (reg_lock) |lock|
@@ -185714,9 +185717,9 @@ fn splitType(self: *CodeGen, comptime parts_len: usize, ty: Type) ![parts_len]Ty
     const ip = &zcu.intern_pool;
     var parts: [parts_len]Type = undefined;
     switch (ip.indexToKey(ty.toIntern())) {
-        .vector_type => |vector_type| if (std.math.divExact(u32, vector_type.len, parts_len)) |vec_len| return .{
+        .vector_type => |vector_type| if (std.math.divExact(u32, vector_type.len, parts_len)) |vec_len| return @splat(.{
             try pt.vectorType(.{ .len = vec_len, .child = vector_type.child }),
-        } ** parts_len else |err| switch (err) {
+        }) else |err| switch (err) {
             error.DivisionByZero => unreachable,
             error.UnexpectedRemainder => {},
         },

@@ -289,7 +289,7 @@ pub fn createEmpty(
 
     // Index 0 is always a null symbol.
     try coff.locals.append(gpa, .{
-        .name = [_]u8{0} ** 8,
+        .name = @splat(0),
         .value = 0,
         .section_number = .UNDEFINED,
         .type = .{ .base_type = .NULL, .complex_type = .NULL },
@@ -674,7 +674,7 @@ pub fn allocateSymbol(coff: *Coff) !u32 {
     };
 
     coff.locals.items[index] = .{
-        .name = [_]u8{0} ** 8,
+        .name = @splat(0),
         .value = 0,
         .section_number = .UNDEFINED,
         .type = .{ .base_type = .NULL, .complex_type = .NULL },
@@ -1537,7 +1537,7 @@ pub fn deleteExport(
     log.debug("deleting export '{f}'", .{name.fmt(&zcu.intern_pool)});
     assert(sym.storage_class == .EXTERNAL and sym.section_number != .UNDEFINED);
     sym.* = .{
-        .name = [_]u8{0} ** 8,
+        .name = @splat(0),
         .value = 0,
         .section_number = .UNDEFINED,
         .type = .{ .base_type = .NULL, .complex_type = .NULL },

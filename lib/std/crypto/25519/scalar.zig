@@ -11,7 +11,7 @@ pub const field_order: u256 = 72370055773322622139731865630429942408571163593799
 pub const CompressedScalar = [32]u8;
 
 /// Zero
-pub const zero = [_]u8{0} ** 32;
+pub const zero: [32]u8 = @splat(0);
 
 const field_order_s = s: {
     var s: [32]u8 = undefined;
@@ -862,9 +862,9 @@ test "non-canonical scalar25519" {
 }
 
 test "mulAdd overflow check" {
-    const a: [32]u8 = [_]u8{0xff} ** 32;
-    const b: [32]u8 = [_]u8{0xff} ** 32;
-    const c: [32]u8 = [_]u8{0xff} ** 32;
+    const a: [32]u8 = @splat(0xff);
+    const b: [32]u8 = @splat(0xff);
+    const c: [32]u8 = @splat(0xff);
     const x = mulAdd(a, b, c);
     var buf: [128]u8 = undefined;
     try std.testing.expectEqualStrings(try std.fmt.bufPrint(&buf, "{X}", .{&x}), "D14DF91389432C25AD60FF9791B9FD1D67BEF517D273ECCE3D9A307C1B419903");

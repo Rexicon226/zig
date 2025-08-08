@@ -84,7 +84,7 @@ fn State128X(comptime degree: u7) type {
             var state = State{ .blocks = blocks };
             if (degree > 1) {
                 const context_block = ctx: {
-                    var contexts_bytes = [_]u8{0} ** aes_block_length;
+                    var contexts_bytes: [aes_block_length]u8 = @splat(0);
                     for (0..degree) |i| {
                         contexts_bytes[i * 16] = @intCast(i);
                         contexts_bytes[i * 16 + 1] = @intCast(degree - 1);
@@ -150,7 +150,7 @@ fn State128X(comptime degree: u7) type {
             const blocks = &state.blocks;
             const z0 = blocks[6].xorBlocks(blocks[1]).xorBlocks(blocks[2].andBlocks(blocks[3]));
             const z1 = blocks[2].xorBlocks(blocks[5]).xorBlocks(blocks[6].andBlocks(blocks[7]));
-            var pad = [_]u8{0} ** rate;
+            var pad: [rate]u8 = @splat(0);
             pad[0..aes_block_length].* = z0.toBytes();
             pad[aes_block_length..].* = z1.toBytes();
             for (pad[0..src.len], src) |*p, x| p.* ^= x;
@@ -214,7 +214,7 @@ fn State128X(comptime degree: u7) type {
                 state.update(t, t);
             }
             if (degree > 1) {
-                var v = [_]u8{0} ** rate;
+                var v: [rate]u8 = @splat(0);
                 switch (tag_bits) {
                     128 => {
                         const tags = blocks[0].xorBlocks(blocks[1]).xorBlocks(blocks[2]).xorBlocks(blocks[3]).xorBlocks(blocks[4]).xorBlocks(blocks[5]).xorBlocks(blocks[6]).toBytes();
@@ -381,7 +381,7 @@ fn State256X(comptime degree: u7) type {
             var state = State{ .blocks = blocks };
             if (degree > 1) {
                 const context_block = ctx: {
-                    var contexts_bytes = [_]u8{0} ** aes_block_length;
+                    var contexts_bytes: [aes_block_length]u8 = @splat(0);
                     for (0..degree) |i| {
                         contexts_bytes[i * 16] = @intCast(i);
                         contexts_bytes[i * 16 + 1] = @intCast(degree - 1);
@@ -509,7 +509,7 @@ fn State256X(comptime degree: u7) type {
                 state.update(t);
             }
             if (degree > 1) {
-                var v = [_]u8{0} ** rate;
+                var v: [rate]u8 = @splat(0);
                 switch (tag_bits) {
                     128 => {
                         const tags = blocks[0].xorBlocks(blocks[1]).xorBlocks(blocks[2]).xorBlocks(blocks[3]).xorBlocks(blocks[4]).xorBlocks(blocks[5]).toBytes();
@@ -781,7 +781,7 @@ fn AegisMac(comptime T: type) type {
         /// Return an authentication tag for the current state
         pub fn final(self: *Mac, out: *[mac_length]u8) void {
             if (self.off > 0) {
-                var pad = [_]u8{0} ** block_length;
+                var pad: [block_length]u8 = @splat(0);
                 @memcpy(pad[0..self.off], self.buf[0..self.off]);
                 self.state.absorb(&pad);
             }
@@ -821,7 +821,7 @@ const testing = std.testing;
 
 test "Aegis128L test vector 1" {
     const key: [Aegis128L.key_length]u8 = [_]u8{ 0x10, 0x01 } ++ [_]u8{0x00} ** 14;
-    const nonce: [Aegis128L.nonce_length]u8 = [_]u8{ 0x10, 0x00, 0x02 } ++ [_]u8{0x00} ** 13;
+    const nonce: [Aegis128L.nonce_length]u8 = [_]u8{ 0x10, 0x00, 0x02 } ++ @as([13]u8, @splat(0x00));
     const ad = [8]u8{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
     const m = [32]u8{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f };
     var c: [m.len]u8 = undefined;
@@ -843,10 +843,10 @@ test "Aegis128L test vector 1" {
 }
 
 test "Aegis128L test vector 2" {
-    const key: [Aegis128L.key_length]u8 = [_]u8{0x00} ** 16;
-    const nonce: [Aegis128L.nonce_length]u8 = [_]u8{0x00} ** 16;
+    const key: [Aegis128L.key_length]u8 = @splat(0x00);
+    const nonce: [Aegis128L.nonce_length]u8 = @splat(0x00);
     const ad = [_]u8{};
-    const m = [_]u8{0x00} ** 16;
+    const m: [16]u8 = @splat(0);
     var c: [m.len]u8 = undefined;
     var m2: [m.len]u8 = undefined;
     var tag: [Aegis128L.tag_length]u8 = undefined;
@@ -860,8 +860,8 @@ test "Aegis128L test vector 2" {
 }
 
 test "Aegis128L test vector 3" {
-    const key: [Aegis128L.key_length]u8 = [_]u8{0x00} ** 16;
-    const nonce: [Aegis128L.nonce_length]u8 = [_]u8{0x00} ** 16;
+    const key: [Aegis128L.key_length]u8 = @splat(0x00);
+    const nonce: [Aegis128L.nonce_length]u8 = @splat(0x00);
     const ad = [_]u8{};
     const m = [_]u8{};
     var c: [m.len]u8 = undefined;
@@ -893,8 +893,8 @@ test "Aegis128X2 test vector 1" {
 }
 
 test "Aegis256 test vector 1" {
-    const key: [Aegis256.key_length]u8 = [_]u8{ 0x10, 0x01 } ++ [_]u8{0x00} ** 30;
-    const nonce: [Aegis256.nonce_length]u8 = [_]u8{ 0x10, 0x00, 0x02 } ++ [_]u8{0x00} ** 29;
+    const key: [Aegis256.key_length]u8 = [_]u8{ 0x10, 0x01 } ++ @as([30]u8, @splat(0x00));
+    const nonce: [Aegis256.nonce_length]u8 = [_]u8{ 0x10, 0x00, 0x02 } ++ @as([29]u8, @splat(0x00));
     const ad = [8]u8{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
     const m = [32]u8{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f };
     var c: [m.len]u8 = undefined;
@@ -916,10 +916,10 @@ test "Aegis256 test vector 1" {
 }
 
 test "Aegis256 test vector 2" {
-    const key: [Aegis256.key_length]u8 = [_]u8{0x00} ** 32;
-    const nonce: [Aegis256.nonce_length]u8 = [_]u8{0x00} ** 32;
+    const key: [Aegis256.key_length]u8 = @splat(0x00);
+    const nonce: [Aegis256.nonce_length]u8 = @splat(0x00);
     const ad = [_]u8{};
-    const m = [_]u8{0x00} ** 16;
+    const m: [16]u8 = @splat(0x00);
     var c: [m.len]u8 = undefined;
     var m2: [m.len]u8 = undefined;
     var tag: [Aegis256.tag_length]u8 = undefined;
@@ -933,8 +933,8 @@ test "Aegis256 test vector 2" {
 }
 
 test "Aegis256 test vector 3" {
-    const key: [Aegis256.key_length]u8 = [_]u8{0x00} ** 32;
-    const nonce: [Aegis256.nonce_length]u8 = [_]u8{0x00} ** 32;
+    const key: [Aegis256.key_length]u8 = @splat(0x00);
+    const nonce: [Aegis256.nonce_length]u8 = @splat(0x00);
     const ad = [_]u8{};
     const m = [_]u8{};
     var c: [m.len]u8 = undefined;
@@ -966,7 +966,7 @@ test "Aegis256X4 test vector 1" {
 }
 
 test "Aegis MAC" {
-    const key = [_]u8{0x00} ** Aegis128LMac.key_length;
+    const key: [Aegis128LMac.key_length]u8 = @splat(0x00);
     var msg: [64]u8 = undefined;
     for (&msg, 0..) |*m, i| {
         m.* = @as(u8, @truncate(i));

@@ -473,7 +473,7 @@ pub const Edwards25519 = struct {
             st.final(&hctx);
             xctx = hctx[0..];
         }
-        const empty_block = [_]u8{0} ** H.block_length;
+        const empty_block: [H.block_length]u8 = @splat(0);
         var t = [3]u8{ 0, n * h_l, 0 };
         var xctx_len_u8 = [1]u8{@as(u8, @intCast(xctx.len))};
         var st = H.init(.{});
