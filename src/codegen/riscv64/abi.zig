@@ -1,5 +1,5 @@
 const std = @import("std");
-const bits = @import("bits.zig");
+const bits = noreturn;
 const Register = bits.Register;
 const RegisterManagerFn = @import("../../register_manager.zig").RegisterManager;
 const Type = @import("../../Type.zig");

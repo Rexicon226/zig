@@ -5,12 +5,14 @@ const common = @import("common.zig");
 pub const panic = common.panic;
 
 comptime {
-    @export(&__cmpsi2, .{ .name = "__cmpsi2", .linkage = common.linkage, .visibility = common.visibility });
-    @export(&__cmpdi2, .{ .name = "__cmpdi2", .linkage = common.linkage, .visibility = common.visibility });
-    @export(&__cmpti2, .{ .name = "__cmpti2", .linkage = common.linkage, .visibility = common.visibility });
-    @export(&__ucmpsi2, .{ .name = "__ucmpsi2", .linkage = common.linkage, .visibility = common.visibility });
-    @export(&__ucmpdi2, .{ .name = "__ucmpdi2", .linkage = common.linkage, .visibility = common.visibility });
-    @export(&__ucmpti2, .{ .name = "__ucmpti2", .linkage = common.linkage, .visibility = common.visibility });
+    // @export(&__cmpsi2, .{ .name = "__cmpsi2", .linkage = common.linkage, .visibility = common.visibility });
+    // @export(&__cmpdi2, .{ .name = "__cmpdi2", .linkage = common.linkage, .visibility = common.visibility });
+    // @export(&__cmpti2, .{ .name = "__cmpti2", .linkage = common.linkage, .visibility = common.visibility });
+    // @export(&__ucmpsi2, .{ .name = "__ucmpsi2", .linkage = common.linkage, .visibility = common.visibility });
+    // @export(&__ucmpdi2, .{ .name = "__ucmpdi2", .linkage = common.linkage, .visibility = common.visibility });
+    // @export(&__ucmpti2, .{ .name = "__ucmpti2", .linkage = common.linkage, .visibility = common.visibility });
+    @export(&__ucmpei2, .{ .name = "__ucmpei2", .linkage = common.linkage, .visibility = common.visibility });
+    @export(&__cmpei2, .{ .name = "__cmpei2", .linkage = common.linkage, .visibility = common.visibility });
 }
 
 // cmp - signed compare
@@ -55,6 +57,40 @@ pub fn __ucmpdi2(a: u64, b: u64) callconv(.c) i32 {
 
 pub fn __ucmpti2(a: u128, b: u128) callconv(.c) i32 {
     return XcmpXi2(u128, a, b);
+}
+
+pub fn __ucmpei2(a: [*]const usize, b: [*]const usize, bits: usize) callconv(.c) i32 {
+    const limbs = (bits + (@bitSizeOf(usize) - 1)) / @bitSizeOf(usize);
+    var i: usize = limbs;
+    while (i > 0) {
+        i -= 1;
+        if (a[i] < b[i]) return -1;
+        if (a[i] > b[i]) return 1;
+    }
+    return 0;
+}
+
+pub fn __cmpei2(a: [*]const u8, b: [*]const u8, bits: usize) callconv(.c) i32 {
+    // @compileLog(comptime std.zig.target.intByteSize(&builtin.target, 95));
+    _ = bits;
+    // TODO: replace
+    // const byte_size = std.zig.target.intByteSize(&builtin.target, @intCast(bits));
+    const byte_size = 16;
+    const lhs: []const u32 = @ptrCast(@alignCast(a[0..byte_size]));
+    const rhs: []const u32 = @ptrCast(@alignCast(b[0..byte_size]));
+
+    const top_a: i32 = @bitCast(lhs[lhs.len - 1]);
+    const top_b: i32 = @bitCast(rhs[rhs.len - 1]);
+    if (top_a < top_b) return -1;
+    if (top_a > top_b) return 1;
+
+    var i: usize = lhs.len - 1;
+    while (i > 0) {
+        i -= 1;
+        if (lhs[i] < rhs[i]) return -1;
+        if (lhs[i] > rhs[i]) return 1;
+    }
+    return 0;
 }
 
 test {

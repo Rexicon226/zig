@@ -216,7 +216,7 @@ const std = @import("std");
 
 const Emit = @This();
 const Lower = @import("Lower.zig");
-const Mir = @import("Mir.zig");
+const Mir = noreturn;
 const riscv_util = @import("../../link/riscv.zig");
 const Elf = @import("../../link/Elf.zig");
 const encoding = @import("encoding.zig");

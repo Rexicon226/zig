@@ -1,0 +1,7 @@
+.{
+    .{
+        .pattern = "ECALL",
+        .symbols = .{},
+        .encode = .{.ecall},
+    },
+}

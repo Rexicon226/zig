@@ -718,8 +718,8 @@ const std = @import("std");
 const assert = std.debug.assert;
 const log = std.log.scoped(.format);
 
-const bits = @import("bits.zig");
-const Mir = @import("Mir.zig");
+const bits = noreturn;
+const Mir = noreturn;
 const Mnemonic = @import("mnem.zig").Mnemonic;
 const Lower = @import("Lower.zig");
 

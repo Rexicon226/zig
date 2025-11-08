@@ -182,6 +182,14 @@ pub const Feature = enum {
     /// Like `soft_f16`, but for 128-bit floating-point types.
     soft_f128,
 
+    /// Replaces all arithmetic operations on integers with a bit-size larger than the target
+    /// usize with either calls to compiler-rt routines or loops. The integer values are
+    /// spilled into `alloc`s in order to allow accessing the limbs.
+    ///
+    /// If this feature is enabled, the following AIR instruction tags may be emitted:
+    /// * `.legalize_compiler_rt_call`
+    soft_bigint,
+
     fn scalarize(tag: Air.Inst.Tag) Feature {
         return switch (tag) {
             else => unreachable,
@@ -344,6 +352,11 @@ fn legalizeBody(l: *Legalize, body_start: usize, body_len: usize) Error!void {
                         &.{ bin_op.lhs, bin_op.rhs },
                         l.typeOf(bin_op.lhs),
                     ),
+                    .big_int => continue :inst l.replaceInst(
+                        inst,
+                        .block,
+                        try l.bigIntBlockPayload(inst),
+                    ),
                 }
             },
             inline .div_trunc,
@@ -361,6 +374,7 @@ fn legalizeBody(l: *Legalize, body_start: usize, body_len: usize) Error!void {
                         bin_op.rhs,
                         air_tag,
                     )),
+                    .big_int => @panic("TODO"),
                 }
             },
             inline .mod, .mod_optimized => |air_tag| {
@@ -373,6 +387,7 @@ fn legalizeBody(l: *Legalize, body_start: usize, body_len: usize) Error!void {
                         bin_op.lhs,
                         bin_op.rhs,
                     )),
+                    .big_int => @panic("TODO"),
                 }
             },
             inline .add_wrap,
@@ -493,6 +508,7 @@ fn legalizeBody(l: *Legalize, body_start: usize, body_len: usize) Error!void {
                         &.{ty_op.operand},
                         ty_op.ty.toType(),
                     ),
+                    .big_int => @panic("TODO"),
                 }
             },
             .fptrunc => {
@@ -534,6 +550,7 @@ fn legalizeBody(l: *Legalize, body_start: usize, body_len: usize) Error!void {
                         .call => |func| continue :inst try l.compilerRtCall(inst, func, &.{ty_op.operand}, ty_op.ty.toType()),
                         .block_payload => |data| continue :inst l.replaceInst(inst, .block, data),
                     },
+                    .big_int => unreachable, // operand not a float
                 }
             },
             .float_from_int => {
@@ -546,6 +563,7 @@ fn legalizeBody(l: *Legalize, body_start: usize, body_len: usize) Error!void {
                         .call => |func| continue :inst try l.compilerRtCall(inst, func, &.{ty_op.operand}, dest_ty),
                         .block_payload => |data| continue :inst l.replaceInst(inst, .block, data),
                     },
+                    .big_int => unreachable, // handled by soft_float
                 }
             },
             .bitcast => if (l.features.has(.scalarize_bitcast)) {
@@ -581,6 +599,7 @@ fn legalizeBody(l: *Legalize, body_start: usize, body_len: usize) Error!void {
                     .scalarize => continue :inst l.replaceInst(inst, .block, try l.scalarizeBlockPayload(inst, .ty_op)),
                     // Expand the safety check so that soft-float can rewrite the unchecked operation.
                     .soft_float => continue :inst l.replaceInst(inst, .block, try l.safeIntFromFloatBlockPayload(inst, optimized)),
+                    .big_int => unreachable, // operand not a float
                 }
             },
             .block, .loop => {
@@ -624,6 +643,7 @@ fn legalizeBody(l: *Legalize, body_start: usize, body_len: usize) Error!void {
                         &.{operand},
                         l.typeOf(operand),
                     ),
+                    .big_int => unreachable, // operand not a float
                 }
             },
             inline .neg, .neg_optimized => |air_tag| {
@@ -632,6 +652,7 @@ fn legalizeBody(l: *Legalize, body_start: usize, body_len: usize) Error!void {
                     .none => {},
                     .scalarize => continue :inst l.replaceInst(inst, .block, try l.scalarizeBlockPayload(inst, .un_op)),
                     .soft_float => continue :inst l.replaceInst(inst, .block, try l.softFloatNegBlockPayload(inst, operand)),
+                    .big_int => @panic("TODO"),
                 }
             },
             .cmp_lt,
@@ -655,7 +676,7 @@ fn legalizeBody(l: *Legalize, body_start: usize, body_len: usize) Error!void {
                         .block,
                         try l.softFloatCmpBlockPayload(inst, ty, air_tag.toCmpOp().?, bin_op.lhs, bin_op.rhs),
                     );
-                }
+                } else if (l.wantSoftBigInt(ty)) continue :inst l.replaceInst(inst, .block, try l.bigIntBlockPayload(inst));
             },
             inline .cmp_vector, .cmp_vector_optimized => |air_tag| {
                 const ty_pl = l.air_instructions.items(.data)[@intFromEnum(inst)].ty_pl;
@@ -664,6 +685,7 @@ fn legalizeBody(l: *Legalize, body_start: usize, body_len: usize) Error!void {
                     .none => {},
                     .scalarize => continue :inst l.replaceInst(inst, .block, try l.scalarizeBlockPayload(inst, .cmp_vector)),
                     .soft_float => unreachable, // the operand is not a scalar
+                    .big_int => undefined, // operand is not an integer
                 }
             },
             .cond_br => {
@@ -792,6 +814,7 @@ fn legalizeBody(l: *Legalize, body_start: usize, body_len: usize) Error!void {
                         try l.scalarizeReduceBlockPayload(inst, air_tag == .reduce_optimized),
                     ),
                     .soft_float => unreachable, // the operand is not a scalar
+                    .big_int => undefined, // operand is not an integer
                 }
             },
             .splat => if (l.features.has(.splat_one_elem_to_bitcast)) {
@@ -811,6 +834,7 @@ fn legalizeBody(l: *Legalize, body_start: usize, body_len: usize) Error!void {
                     .none => {},
                     .scalarize => continue :inst l.replaceInst(inst, .block, try l.scalarizeShuffleOneBlockPayload(inst)),
                     .soft_float => unreachable, // the operand is not a scalar
+                    .big_int => undefined, // operand is not an integer
                 }
             },
             .shuffle_two => {
@@ -819,6 +843,7 @@ fn legalizeBody(l: *Legalize, body_start: usize, body_len: usize) Error!void {
                     .none => {},
                     .scalarize => continue :inst l.replaceInst(inst, .block, try l.scalarizeShuffleTwoBlockPayload(inst)),
                     .soft_float => unreachable, // the operand is not a scalar
+                    .big_int => undefined, // operand is not an integer
                 }
             },
             .select => {
@@ -828,6 +853,7 @@ fn legalizeBody(l: *Legalize, body_start: usize, body_len: usize) Error!void {
                     .none => {},
                     .scalarize => continue :inst l.replaceInst(inst, .block, try l.scalarizeBlockPayload(inst, .select)),
                     .soft_float => unreachable, // the operand is not a scalar
+                    .big_int => unreachable, // operand is not an integer
                 }
             },
             .memset,
@@ -873,6 +899,7 @@ fn legalizeBody(l: *Legalize, body_start: usize, body_len: usize) Error!void {
                 const ty = l.typeOf(pl_op.operand);
                 switch (l.wantScalarizeOrSoftFloat(.mul_add, ty)) {
                     .none => {},
+                    .big_int => unreachable, // operand is not an integer
                     .scalarize => continue :inst l.replaceInst(inst, .block, try l.scalarizeBlockPayload(inst, .pl_op_bin)),
                     .soft_float => {
                         const bin = l.extraData(Air.Bin, pl_op.payload).data;
@@ -3360,6 +3387,145 @@ fn softFloatCmpBlockPayload(
     } };
 }
 
+fn bigIntBlockPayload(l: *Legalize, orig_inst: Air.Inst.Index) Error!Air.Inst.Data {
+    const pt = l.pt;
+    const zcu = pt.zcu;
+
+    const gpa = zcu.gpa;
+
+    const orig = l.air_instructions.get(@intFromEnum(orig_inst));
+    switch (orig.tag) {
+        .cmp_eq,
+        .cmp_neq,
+        .cmp_lt,
+        .cmp_lte,
+        .cmp_gt,
+        .cmp_gte,
+        => {
+            const bin_op = orig.data.bin_op;
+            const ty = l.typeOf(bin_op.lhs);
+            return try l.bigIntCmpBlockPayload(orig_inst, ty, orig.tag, bin_op.lhs, bin_op.rhs);
+        },
+        .add,
+        => {
+            const bin_op = orig.data.bin_op;
+            const ty = l.typeOf(bin_op.lhs);
+            const int_info = ty.intInfo(zcu);
+
+            const func: Air.CompilerRtFunc = switch (orig.tag) {
+                .add => .__addei3,
+                else => unreachable,
+            };
+
+            var inst_buf: [11]Air.Inst.Index = undefined;
+            var main_block: Block = .init(&inst_buf);
+            try l.air_instructions.ensureUnusedCapacity(gpa, inst_buf.len);
+
+            // The extended integer routines expect the integer representation where the integer is
+            // effectively zero- or sign-extended to its ABI size. We represent that by intcasting to
+            // such an integer type and passing a pointer to *that*.
+            const extended_ty = try pt.intType(int_info.signedness, @intCast(ty.abiSize(zcu) * 8));
+            assert(extended_ty.abiSize(zcu) == ty.abiSize(zcu));
+
+            const extended_lhs_val: Air.Inst.Ref = if (extended_ty.toIntern() != ty.toIntern()) ext: {
+                break :ext main_block.addTyOp(l, .intcast, extended_ty, bin_op.lhs).toRef();
+            } else ext: {
+                _ = main_block.stealCapacity(1);
+                break :ext bin_op.lhs;
+            };
+            const extended_rhs_val: Air.Inst.Ref = if (extended_ty.toIntern() != ty.toIntern()) ext: {
+                break :ext main_block.addTyOp(l, .intcast, extended_ty, bin_op.rhs).toRef();
+            } else ext: {
+                _ = main_block.stealCapacity(1);
+                break :ext bin_op.rhs;
+            };
+
+            const extended_lhs_ptr = main_block.addTy(l, .alloc, try pt.singleConstPtrType(extended_ty)).toRef();
+            _ = main_block.addBinOp(l, .store, extended_lhs_ptr, extended_lhs_val);
+            const extended_rhs_ptr = main_block.addTy(l, .alloc, try pt.singleConstPtrType(extended_ty)).toRef();
+            _ = main_block.addBinOp(l, .store, extended_rhs_ptr, extended_rhs_val);
+
+            const result_ptr = main_block.addTy(l, .alloc, try pt.singleMutPtrType(extended_ty)).toRef();
+            const bits_val = try pt.intValue(.usize, int_info.bits);
+
+            // routine(ret, lhs, rhs, bits)
+            _ = try main_block.addCompilerRtCall(l, func, &.{
+                result_ptr,
+                extended_lhs_ptr,
+                extended_rhs_ptr,
+                .fromValue(bits_val),
+            });
+
+            // load back from the result and intcast it to the original destination type
+            const result_value = main_block.addTyOp(l, .load, extended_ty, result_ptr).toRef();
+            const casted_result = main_block.addTyOp(l, .intcast, ty, result_value).toRef();
+            main_block.addBr(l, orig_inst, casted_result);
+
+            return .{ .ty_pl = .{
+                .ty = .fromType(ty),
+                .payload = try l.addBlockBody(main_block.body()),
+            } };
+        },
+        else => unreachable,
+    }
+}
+
+fn bigIntCmpBlockPayload(
+    l: *Legalize,
+    orig_inst: Air.Inst.Index,
+    int_ty: Type,
+    air_tag: Air.Inst.Tag,
+    lhs: Air.Inst.Ref,
+    rhs: Air.Inst.Ref,
+) Error!Air.Inst.Data {
+    const pt = l.pt;
+    const zcu = pt.zcu;
+    const gpa = zcu.gpa;
+    const int_info = int_ty.intInfo(zcu);
+
+    var inst_buf: [2 * 3 + 3]Air.Inst.Index = undefined;
+    var main_block: Block = .init(&inst_buf);
+    try l.air_instructions.ensureUnusedCapacity(gpa, inst_buf.len);
+
+    // move into an alloc so that we can load the individual limbs
+    const ptr_ty = try pt.singleConstPtrType(int_ty);
+    const many_usize_ty = try pt.manyConstPtrType(.usize);
+
+    const lhs_alloc = main_block.addTy(l, .alloc, ptr_ty).toRef();
+    _ = main_block.addBinOp(l, .store, lhs_alloc, lhs);
+    const lhs_limbs = main_block.addTyOp(l, .bitcast, many_usize_ty, lhs_alloc).toRef();
+
+    const rhs_alloc = main_block.addTy(l, .alloc, ptr_ty).toRef();
+    _ = main_block.addBinOp(l, .store, rhs_alloc, rhs);
+    const rhs_limbs = main_block.addTyOp(l, .bitcast, many_usize_ty, rhs_alloc).toRef();
+
+    const compiler_rt_call: Air.CompilerRtFunc = switch (int_info.signedness) {
+        .unsigned => .__ucmpei2,
+        .signed => .__cmpei2,
+    };
+    const bits_value: Air.Inst.Ref = .fromValue(try pt.intValue(.usize, int_info.bits));
+    const order = try main_block.addCompilerRtCall(l, compiler_rt_call, &.{ lhs_limbs, rhs_limbs, bits_value });
+
+    const expected: Air.Inst.Ref = .fromValue(try pt.intValue(.i32, @as(i32, switch (air_tag) {
+        .cmp_eq, .cmp_neq => 0,
+        .cmp_lt, .cmp_gte => -1,
+        .cmp_lte, .cmp_gt => 1,
+        else => unreachable,
+    })));
+    const result = main_block.addBinOp(l, switch (air_tag) {
+        .cmp_eq, .cmp_neq => air_tag,
+        .cmp_lt, .cmp_gt => .cmp_eq,
+        .cmp_lte, .cmp_gte => .cmp_neq,
+        else => unreachable,
+    }, order.toRef(), expected);
+    main_block.addBr(l, orig_inst, result.toRef());
+
+    return .{ .ty_pl = .{
+        .ty = .bool_type,
+        .payload = try l.addBlockBody(main_block.body()),
+    } };
+}
+
 /// `inline` to propagate potentially comptime-known return value.
 inline fn wantScalarizeOrSoftFloat(
     l: *const Legalize,
@@ -3369,6 +3535,7 @@ inline fn wantScalarizeOrSoftFloat(
     none,
     scalarize,
     soft_float,
+    big_int,
 } {
     const zcu = l.pt.zcu;
     const is_vec, const scalar_ty = switch (ty.zigTypeTag(zcu)) {
@@ -3381,6 +3548,11 @@ inline fn wantScalarizeOrSoftFloat(
     if (l.wantSoftFloatScalar(scalar_ty)) {
         return if (is_vec) .scalarize else .soft_float;
     }
+
+    if (l.wantSoftBigInt(scalar_ty)) {
+        return .big_int;
+    }
+
     return .none;
 }
 
@@ -3399,6 +3571,13 @@ inline fn wantSoftFloatScalar(l: *const Legalize, ty: Type) bool {
         },
         else => false,
     };
+}
+
+inline fn wantSoftBigInt(l: *const Legalize, ty: Type) bool {
+    const zcu = l.pt.zcu;
+    if (!ty.isInt(zcu)) return false;
+    if (ty.bitSize(zcu) <= zcu.getTarget().ptrBitWidth()) return false;
+    return l.features.has(.soft_bigint);
 }
 
 const Air = @import("../Air.zig");

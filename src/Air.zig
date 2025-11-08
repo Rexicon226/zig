@@ -2296,18 +2296,23 @@ pub const CompilerRtFunc = enum(u32) {
     __fixhfsi, __fixsfsi, __fixdfsi, __fixxfsi, __fixtfsi, // float to i32
     __fixhfdi, __fixsfdi, __fixdfdi, __fixxfdi, __fixtfdi, // float to i64
     __fixhfti, __fixsfti, __fixdfti, __fixxfti, __fixtfti, // float to i128
-    __fixhfei, __fixsfei, __fixdfei, __fixxfei, __fixtfei, // float to arbitray iN
+    __fixhfei, __fixsfei, __fixdfei, __fixxfei, __fixtfei, // float to arbitrary iN
     __fixunshfsi, __fixunssfsi, __fixunsdfsi, __fixunsxfsi, __fixunstfsi, // float to u32
     __fixunshfdi, __fixunssfdi, __fixunsdfdi, __fixunsxfdi, __fixunstfdi, // float to u64
     __fixunshfti, __fixunssfti, __fixunsdfti, __fixunsxfti, __fixunstfti, // float to u128
-    __fixunshfei, __fixunssfei, __fixunsdfei, __fixunsxfei, __fixunstfei, // float to arbitray uN
+    __fixunshfei, __fixunssfei, __fixunsdfei, __fixunsxfei, __fixunstfei, // float to arbitrary uN
+
+    // extended integer routines
+    __addei3, 
+    __cmpei2, // compare arbitrary iN
+    __ucmpei2, // compare arbitrary uN
 
     // zig fmt: on
 
     /// Usually, the tag names of `CompilerRtFunc` match the corresponding symbol name, but not
     /// always; some target triples have slightly different compiler-rt ABIs for one reason or
     /// another.
-    pub fn name(f: CompilerRtFunc, target: *const std.Target) []const u8 {
+    pub fn name(f: CompilerRtFunc, target: *const std.Target) [:0]const u8 {
         const use_gnu_f16_abi = switch (target.cpu.arch) {
             .wasm32,
             .wasm64,
@@ -2543,6 +2548,9 @@ pub const CompilerRtFunc = enum(u32) {
             .__fixunshfdi, .__fixunssfdi, .__fixunsdfdi, .__fixunsxfdi, .__fixunstfdi => .u64,
             .__fixunshfti, .__fixunssfti, .__fixunsdfti, .__fixunsxfti, .__fixunstfti => .u128,
             .__fixunshfei, .__fixunssfei, .__fixunsdfei, .__fixunsxfei, .__fixunstfei => .void,
+
+            .__addei3 => .void,
+            .__ucmpei2, .__cmpei2 => .i32,
         };
     }
 };

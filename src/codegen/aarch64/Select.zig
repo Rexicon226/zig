@@ -10776,7 +10776,7 @@ pub const Value = struct {
                                         else => unreachable,
                                         1...4 => mat.ra.w(),
                                         5...8 => mat.ra.x(),
-                                    }, @bitCast(std.math.shr(u64, imm, 8 * offset))),
+                                    }, std.math.shr(u64, imm, 8 * offset)),
                                     .i64 => |imm| switch (size) {
                                         else => unreachable,
                                         1...4 => try isel.movImmediate(mat.ra.w(), @as(u32, @bitCast(@as(i32, @truncate(std.math.shr(i64, imm, 8 * offset)))))),

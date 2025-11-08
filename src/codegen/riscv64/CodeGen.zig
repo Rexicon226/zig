@@ -8,7 +8,7 @@ const assert = std.debug.assert;
 const Allocator = mem.Allocator;
 
 const Air = @import("../../Air.zig");
-const Mir = @import("Mir.zig");
+const Mir = noreturn;
 const Emit = @import("Emit.zig");
 const Type = @import("../../Type.zig");
 const Value = @import("../../Value.zig");
@@ -32,7 +32,7 @@ const Alignment = InternPool.Alignment;
 
 const CodeGenError = codegen.CodeGenError;
 
-const bits = @import("bits.zig");
+const bits = noreturn;
 const abi = @import("abi.zig");
 const Lower = @import("Lower.zig");
 const mnem_import = @import("mnem.zig");

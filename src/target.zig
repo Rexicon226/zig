@@ -244,6 +244,7 @@ pub fn hasNewLinkerSupport(ofmt: std.Target.ObjectFormat, backend: std.builtin.C
     return switch (ofmt) {
         .elf, .coff => switch (backend) {
             .stage2_x86_64 => true,
+            .stage2_riscv64 => true,
             else => false,
         },
         else => false,
@@ -388,7 +389,7 @@ pub fn canBuildLibCompilerRt(target: *const std.Target) enum { no, yes, llvm_onl
         else => {},
     }
     return switch (zigBackend(target, false)) {
-        .stage2_aarch64, .stage2_x86_64 => .yes,
+        .stage2_aarch64, .stage2_x86_64, .stage2_riscv64 => .yes,
         else => .llvm_only,
     };
 }
@@ -881,7 +882,6 @@ pub inline fn backendSupportsFeature(backend: std.builtin.CompilerBackend, compt
             .stage2_c,
             .stage2_llvm,
             .stage2_x86_64,
-            .stage2_riscv64,
             => true,
             else => false,
         },

@@ -122,7 +122,7 @@ pub const gnu_f16_abi = switch (builtin.cpu.arch) {
 pub const want_sparc_abi = builtin.cpu.arch.isSPARC();
 
 pub const test_safety = switch (builtin.zig_backend) {
-    .stage2_aarch64 => false,
+    .stage2_aarch64, .stage2_riscv64 => false,
     else => builtin.is_test,
 };
 

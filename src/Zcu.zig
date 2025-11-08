@@ -4528,8 +4528,7 @@ pub fn callconvSupported(zcu: *Zcu, cc: std.builtin.CallingConvention) union(enu
             else => unreachable,
         },
         .stage2_riscv64 => switch (cc) {
-            .riscv64_lp64 => |opts| opts.incoming_stack_alignment == null,
-            .naked => true,
+            .riscv64_lp64, .naked => true,
             else => false,
         },
         .stage2_sparc64 => switch (cc) {
@@ -4560,6 +4559,15 @@ pub fn codegenFail(
     args: anytype,
 ) CodegenFailError {
     const msg = try Zcu.ErrorMsg.create(zcu.gpa, zcu.navSrcLoc(nav_index), format, args);
+    if (build_options.enable_debug_extensions and zcu.comp.debug_compile_errors) {
+        var wip_errors: std.zig.ErrorBundle.Wip = undefined;
+        wip_errors.init(zcu.gpa) catch @panic("out of memory");
+        Compilation.addModuleErrorMsg(zcu, &wip_errors, msg.*, false) catch @panic("out of memory");
+        std.debug.print("compile error during Sema:\n", .{});
+        var error_bundle = wip_errors.toOwnedBundle("") catch @panic("out of memory");
+        error_bundle.renderToStdErr(.{}, .auto);
+        std.debug.panicExtra(@returnAddress(), "unexpected compile error occurred", .{});
+    }
     return zcu.codegenFailMsg(nav_index, msg);
 }
 

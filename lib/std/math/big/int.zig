@@ -2553,11 +2553,7 @@ pub const Const = struct {
             }
         } else {
             const r = orderAbs(a, b);
-            return if (a.positive) r else switch (r) {
-                .lt => math.Order.gt,
-                .eq => math.Order.eq,
-                .gt => math.Order.lt,
-            };
+            return if (a.positive) r else r.invert();
         }
     }
 

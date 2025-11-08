@@ -507,6 +507,7 @@ pub fn intAlignment(target: *const std.Target, bits: u16) u16 {
     };
 }
 
+const builtin = @import("builtin");
 const std = @import("std");
 const assert = std.debug.assert;
 const Allocator = std.mem.Allocator;

@@ -13736,9 +13736,13 @@ fn maybeErrorUnwrap(
                 const inst_data = sema.code.instructions.items(.data)[@intFromEnum(inst)].un_node;
                 const msg_inst = try sema.resolveInst(inst_data.operand);
 
-                const panic_fn = try getBuiltin(sema, operand_src, .@"panic.call");
-                const args: [2]Air.Inst.Ref = .{ msg_inst, .null_value };
-                try sema.callBuiltin(block, operand_src, Air.internedToRef(panic_fn), .auto, &args, .@"safety check");
+                if (zcu.backendSupportsFeature(.panic_fn)) {
+                    const panic_fn = try getBuiltin(sema, operand_src, .@"panic.call");
+                    const args: [2]Air.Inst.Ref = .{ msg_inst, .null_value };
+                    try sema.callBuiltin(block, operand_src, Air.internedToRef(panic_fn), .auto, &args, .@"safety check");
+                } else {
+                    _ = try block.addNoOp(.trap);
+                }
                 return true;
             },
             else => unreachable,

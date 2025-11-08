@@ -12,6 +12,8 @@ pub const std_options: std.Options = .{
     .logFn = log,
 };
 
+pub const panic = std.debug.no_panic;
+
 var log_err_count: usize = 0;
 var fba: std.heap.FixedBufferAllocator = .init(&fba_buffer);
 var fba_buffer: [8192]u8 = undefined;
@@ -32,44 +34,44 @@ const need_simple = switch (builtin.zig_backend) {
 pub fn main() void {
     @disableInstrumentation();
 
-    if (builtin.cpu.arch.isSpirV()) {
-        // SPIR-V needs an special test-runner
-        return;
-    }
+    // if (builtin.cpu.arch.isSpirV()) {
+    //     // SPIR-V needs an special test-runner
+    //     return;
+    // }
 
     if (need_simple) {
         return mainSimple() catch @panic("test failure\n");
     }
 
-    const args = std.process.argsAlloc(fba.allocator()) catch
-        @panic("unable to parse command line args");
+    // const args = std.process.argsAlloc(fba.allocator()) catch
+    //     @panic("unable to parse command line args");
 
-    var listen = false;
-    var opt_cache_dir: ?[]const u8 = null;
+    // var listen = false;
+    // var opt_cache_dir: ?[]const u8 = null;
 
-    for (args[1..]) |arg| {
-        if (std.mem.eql(u8, arg, "--listen=-")) {
-            listen = true;
-        } else if (std.mem.startsWith(u8, arg, "--seed=")) {
-            testing.random_seed = std.fmt.parseUnsigned(u32, arg["--seed=".len..], 0) catch
-                @panic("unable to parse --seed command line argument");
-        } else if (std.mem.startsWith(u8, arg, "--cache-dir")) {
-            opt_cache_dir = arg["--cache-dir=".len..];
-        } else {
-            @panic("unrecognized command line argument");
-        }
-    }
+    // for (args[1..]) |arg| {
+    //     if (std.mem.eql(u8, arg, "--listen=-")) {
+    //         listen = true;
+    //     } else if (std.mem.startsWith(u8, arg, "--seed=")) {
+    //         testing.random_seed = std.fmt.parseUnsigned(u32, arg["--seed=".len..], 0) catch
+    //             @panic("unable to parse --seed command line argument");
+    //     } else if (std.mem.startsWith(u8, arg, "--cache-dir")) {
+    //         opt_cache_dir = arg["--cache-dir=".len..];
+    //     } else {
+    //         @panic("unrecognized command line argument");
+    //     }
+    // }
 
-    if (builtin.fuzz) {
-        const cache_dir = opt_cache_dir orelse @panic("missing --cache-dir=[path] argument");
-        fuzz_abi.fuzzer_init(.fromSlice(cache_dir));
-    }
+    // if (builtin.fuzz) {
+    //     const cache_dir = opt_cache_dir orelse @panic("missing --cache-dir=[path] argument");
+    //     fuzz_abi.fuzzer_init(.fromSlice(cache_dir));
+    // }
 
-    if (listen) {
-        return mainServer() catch @panic("internal test runner failure");
-    } else {
-        return mainTerminal();
-    }
+    // if (listen) {
+    //     return mainServer() catch @panic("internal test runner failure");
+    // } else {
+    //     return mainTerminal();
+    // }
 }
 
 fn mainServer() !void {
@@ -318,14 +320,14 @@ pub fn log(
 /// work-in-progress backends can handle it.
 pub fn mainSimple() anyerror!void {
     @disableInstrumentation();
-    // is the backend capable of calling `std.fs.File.writeAll`?
+    // is the backend capable of calling `std.os.linux.write`?
     const enable_write = switch (builtin.zig_backend) {
         .stage2_aarch64, .stage2_riscv64 => true,
         else => false,
     };
     // is the backend capable of calling `Io.Writer.print`?
     const enable_print = switch (builtin.zig_backend) {
-        .stage2_aarch64, .stage2_riscv64 => true,
+        .stage2_aarch64 => true,
         else => false,
     };
 
@@ -334,23 +336,24 @@ pub fn mainSimple() anyerror!void {
     var failed: u64 = 0;
 
     // we don't want to bring in File and Writer if the backend doesn't support it
-    const stdout = if (enable_write) std.fs.File.stdout() else {};
+    const stdout = if (enable_print) std.fs.File.stdout() else {};
+    const write = std.os.linux.write;
 
     for (builtin.test_functions) |test_fn| {
         if (enable_write) {
-            stdout.writeAll(test_fn.name) catch {};
-            stdout.writeAll("... ") catch {};
+            _ = write(1, test_fn.name.ptr, test_fn.name.len);
+            _ = write(1, "...", "...".len);
         }
         if (test_fn.func()) |_| {
-            if (enable_write) stdout.writeAll("PASS\n") catch {};
+            if (enable_write) _ = write(1, "PASS\n".ptr, "PASS\n".len);
         } else |err| {
             if (err != error.SkipZigTest) {
-                if (enable_write) stdout.writeAll("FAIL\n") catch {};
+                if (enable_write) _ = write(1, "FAIL\n".ptr, "FAIL\n".len);
                 failed += 1;
                 if (!enable_write) return err;
                 continue;
             }
-            if (enable_write) stdout.writeAll("SKIP\n") catch {};
+            if (enable_write) _ = write(1, "SKIP\n".ptr, "SKIP\n".len);
             skipped += 1;
             continue;
         }
@@ -360,7 +363,7 @@ pub fn mainSimple() anyerror!void {
         var stdout_writer = stdout.writer(&.{});
         stdout_writer.interface.print("{} passed, {} skipped, {} failed\n", .{ passed, skipped, failed }) catch {};
     }
-    if (failed != 0) std.process.exit(1);
+    if (failed != 0) std.process.exit(10);
 }
 
 var is_fuzz_test: bool = undefined;

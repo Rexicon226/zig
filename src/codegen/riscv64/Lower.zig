@@ -605,9 +605,9 @@ const link = @import("../../link.zig");
 const Air = @import("../../Air.zig");
 const Zcu = @import("../../Zcu.zig");
 
-const Mir = @import("Mir.zig");
+const Mir = noreturn;
 const abi = @import("abi.zig");
-const bits = @import("bits.zig");
+const bits = noreturn;
 const encoding = @import("encoding.zig");
 
 const Mnemonic = @import("mnem.zig").Mnemonic;

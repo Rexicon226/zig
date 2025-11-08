@@ -548,6 +548,14 @@ set(ZIG_STAGE2_SOURCES
     src/codegen/c/Type.zig
     src/codegen/llvm.zig
     src/codegen/llvm/bindings.zig
+    src/codegen/riscv_2/abi.zig
+    src/codegen/riscv_2/Assemble.zig
+    src/codegen/riscv_2/Disassemble.zig
+    src/codegen/riscv_2/encoding.zig
+    src/codegen/riscv_2/instructions.zon
+    src/codegen/riscv_2/Mir.zig
+    src/codegen/riscv_2/Select.zig
+    src/codegen/riscv64.zig
     src/crash_report.zig
     src/dev.zig
     src/libs/freebsd.zig

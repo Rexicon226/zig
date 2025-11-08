@@ -23,6 +23,7 @@ const Alignment = InternPool.Alignment;
 const dev = @import("dev.zig");
 
 pub const aarch64 = @import("codegen/aarch64.zig");
+pub const riscv64 = @import("codegen/riscv64.zig");
 
 pub const CodeGenError = GenerateSymbolError || error{
     /// Indicates the error is already stored in Zcu `failed_codegen`.
@@ -55,7 +56,7 @@ fn importBackend(comptime backend: std.builtin.CompilerBackend) type {
         .stage2_c => @import("codegen/c.zig"),
         .stage2_llvm => @import("codegen/llvm.zig"),
         .stage2_powerpc => unreachable,
-        .stage2_riscv64 => @import("codegen/riscv64/CodeGen.zig"),
+        .stage2_riscv64 => riscv64,
         .stage2_sparc64 => @import("codegen/sparc64/CodeGen.zig"),
         .stage2_spirv => @import("codegen/spirv/CodeGen.zig"),
         .stage2_wasm => @import("codegen/wasm/CodeGen.zig"),
@@ -90,7 +91,7 @@ pub fn wantsLiveness(pt: Zcu.PerThread, nav_index: InternPool.Nav.Index) bool {
     const target = &zcu.navFileScope(nav_index).mod.?.resolved_target.result;
     return switch (target_util.zigBackend(target, zcu.comp.config.use_llvm)) {
         else => true,
-        .stage2_aarch64 => false,
+        .stage2_aarch64, .stage2_riscv64 => false,
     };
 }
 
@@ -99,7 +100,7 @@ pub fn wantsLiveness(pt: Zcu.PerThread, nav_index: InternPool.Nav.Index) bool {
 /// union of all MIR types. The active tag is known from the backend in use; see `AnyMir.tag`.
 pub const AnyMir = union {
     aarch64: if (dev.env.supports(.aarch64_backend)) @import("codegen/aarch64/Mir.zig") else noreturn,
-    riscv64: if (dev.env.supports(.riscv64_backend)) @import("codegen/riscv64/Mir.zig") else noreturn,
+    riscv64: if (dev.env.supports(.riscv64_backend)) @import("codegen/riscv64_2/Mir.zig") else noreturn,
     sparc64: if (dev.env.supports(.sparc64_backend)) @import("codegen/sparc64/Mir.zig") else noreturn,
     x86_64: if (dev.env.supports(.x86_64_backend)) @import("codegen/x86_64/Mir.zig") else noreturn,
     wasm: if (dev.env.supports(.wasm_backend)) @import("codegen/wasm/Mir.zig") else noreturn,
@@ -216,7 +217,10 @@ pub fn generateLazyFunction(
         zcu.getTarget();
     switch (target_util.zigBackend(target, zcu.comp.config.use_llvm)) {
         else => unreachable,
-        inline .stage2_riscv64, .stage2_x86_64 => |backend| {
+        inline
+        // .stage2_riscv64, TODO: re-add tagName/errorName support
+        .stage2_x86_64,
+        => |backend| {
             dev.check(devFeatureForBackend(backend));
             return importBackend(backend).generateLazy(lf, pt, src_loc, lazy_sym, atom_index, w, debug_output);
         },

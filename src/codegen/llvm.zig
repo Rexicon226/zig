@@ -25,7 +25,7 @@ const x86_64_abi = @import("x86_64/abi.zig");
 const wasm_c_abi = @import("wasm/abi.zig");
 const aarch64_c_abi = @import("aarch64/abi.zig");
 const arm_c_abi = @import("arm/abi.zig");
-const riscv_c_abi = @import("riscv64/abi.zig");
+const riscv_c_abi = @import("riscv64_2/abi.zig");
 const mips_c_abi = @import("mips/abi.zig");
 const dev = @import("../dev.zig");
 

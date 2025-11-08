@@ -624,6 +624,33 @@ pub const Reloc = extern struct {
                             target_endian,
                         ),
                     },
+                    .RISCV => switch (reloc.type.RISCV) {
+                        .@"64" => std.mem.writeInt(
+                            u64,
+                            loc_slice[0..8],
+                            target_value,
+                            target_endian,
+                        ),
+                        .HI20 => {
+                            const value: u32 = @bitCast(@as(i32, @intCast(target_value))); // TODO: safety checks
+                            riscv_util.writeInstU(loc_slice[0..4], value);
+                        },
+                        .LO12_I, .LO12_S => |r_type| {
+                            const value: u32 = @bitCast(@as(i32, @intCast(target_value))); // TODO: safety checks
+                            switch (r_type) {
+                                .LO12_I => riscv_util.writeInstI(loc_slice[0..4], value),
+                                .LO12_S => riscv_util.writeInstS(loc_slice[0..4], value),
+                                else => unreachable,
+                            }
+                        },
+                        .CALL_PLT => {
+                            // TODO: relax if possible
+                            const disp: i32 = @intCast(@as(i64, @bitCast(target_value -% loc_value)));
+                            riscv_util.writeInstU(loc_slice[0..4], @bitCast(disp)); // auipc
+                            riscv_util.writeInstI(loc_slice[4..][0..4], @bitCast(disp)); // jalr
+                        },
+                        else => |t| @panic(@tagName(t)),
+                    },
                 }
             },
         }
@@ -808,7 +835,21 @@ fn create(
     };
     errdefer elf.deinit();
 
-    try elf.initHeaders(class, data, osabi, @"type", machine, maybe_interp);
+    const flags: std.elf.Word = switch (target.cpu.arch) {
+        .riscv64 => @bitCast(@as(riscv_util.Eflags, .{
+            .rvc = target.cpu.has(.riscv, .c),
+            .fabi = if (target.cpu.has(.riscv, .d))
+                .double
+            else if (target.cpu.has(.riscv, .f))
+                .single
+            else
+                .soft,
+            .rve = target.cpu.has(.riscv, .e),
+            .tso = target.cpu.has(.riscv, .ztso),
+        })),
+        else => 0,
+    };
+    try elf.initHeaders(class, data, osabi, @"type", machine, flags, maybe_interp);
     return elf;
 }
 
@@ -843,6 +884,7 @@ fn initHeaders(
     osabi: std.elf.OSABI,
     @"type": std.elf.ET,
     machine: std.elf.EM,
+    flags: std.elf.Word,
     maybe_interp: ?[]const u8,
 ) !void {
     const comp = elf.base.comp;
@@ -922,7 +964,7 @@ fn initHeaders(
             ehdr.entry = 0;
             ehdr.phoff = 0;
             ehdr.shoff = 0;
-            ehdr.flags = 0;
+            ehdr.flags = flags;
             ehdr.ehsize = @sizeOf(ElfN.Ehdr);
             ehdr.phentsize = @sizeOf(ElfN.Phdr);
             ehdr.phnum = @min(phnum, std.elf.PN_XNUM);
@@ -3245,3 +3287,4 @@ const target_util = @import("../target.zig");
 const Type = @import("../Type.zig");
 const Value = @import("../Value.zig");
 const Zcu = @import("../Zcu.zig");
+const riscv_util = @import("riscv.zig");

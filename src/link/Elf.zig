@@ -1629,7 +1629,20 @@ pub fn writeElfHeader(self: *Elf) !void {
         },
     }
 
-    const e_flags = 0;
+    const e_flags: u32 = switch (target.cpu.arch) {
+        .riscv64 => @bitCast(@as(riscv.Eflags, .{
+            .rvc = target.cpu.has(.riscv, .c),
+            .fabi = if (target.cpu.has(.riscv, .d))
+                .double
+            else if (target.cpu.has(.riscv, .f))
+                .single
+            else
+                .soft,
+            .rve = target.cpu.has(.riscv, .e),
+            .tso = target.cpu.has(.riscv, .ztso),
+        })),
+        else => 0,
+    };
     mem.writeInt(u32, hdr_buf[index..][0..4], e_flags, endian);
     index += 4;
 
@@ -4483,6 +4496,7 @@ const relocation = @import("Elf/relocation.zig");
 const target_util = @import("../target.zig");
 const trace = @import("../tracy.zig").trace;
 const synthetic_sections = @import("Elf/synthetic_sections.zig");
+const riscv = @import("riscv.zig");
 
 const Merge = @import("Elf/Merge.zig");
 const Archive = @import("Elf/Archive.zig");
