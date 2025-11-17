@@ -59,23 +59,21 @@ pub fn __ucmpti2(a: u128, b: u128) callconv(.c) i32 {
     return XcmpXi2(u128, a, b);
 }
 
-pub fn __ucmpei2(a: [*]const usize, b: [*]const usize, bits: usize) callconv(.c) i32 {
-    const limbs = (bits + (@bitSizeOf(usize) - 1)) / @bitSizeOf(usize);
-    var i: usize = limbs;
+pub fn __ucmpei2(a: [*]const u8, b: [*]const u8, bits: usize) callconv(.c) i32 {
+    const byte_size = std.zig.target.intByteSize(&builtin.target, @intCast(bits));
+    const lhs: []const u32 = @ptrCast(@alignCast(a[0..byte_size]));
+    const rhs: []const u32 = @ptrCast(@alignCast(b[0..byte_size]));
+    var i: usize = lhs.len;
     while (i > 0) {
         i -= 1;
-        if (a[i] < b[i]) return -1;
-        if (a[i] > b[i]) return 1;
+        if (lhs[i] < rhs[i]) return -1;
+        if (lhs[i] > rhs[i]) return 1;
     }
     return 0;
 }
 
 pub fn __cmpei2(a: [*]const u8, b: [*]const u8, bits: usize) callconv(.c) i32 {
-    // @compileLog(comptime std.zig.target.intByteSize(&builtin.target, 95));
-    _ = bits;
-    // TODO: replace
-    // const byte_size = std.zig.target.intByteSize(&builtin.target, @intCast(bits));
-    const byte_size = 16;
+    const byte_size = std.zig.target.intByteSize(&builtin.target, @intCast(bits));
     const lhs: []const u32 = @ptrCast(@alignCast(a[0..byte_size]));
     const rhs: []const u32 = @ptrCast(@alignCast(b[0..byte_size]));
 

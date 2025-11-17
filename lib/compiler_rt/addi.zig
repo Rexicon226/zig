@@ -12,7 +12,7 @@ comptime {
         @export(&__addvsi3, .{ .name = "__addvsi3", .linkage = common.linkage, .visibility = common.visibility });
         @export(&__addvdi3, .{ .name = "__addvdi3", .linkage = common.linkage, .visibility = common.visibility });
     }
-    @export(&__addei3, .{ .name = "__addei3", .linkage = common.linkage, .visibility = common.visibility });
+    // @export(&__addei3, .{ .name = "__addei3", .linkage = common.linkage, .visibility = common.visibility });
 }
 
 pub fn __addvsi3(a: i32, b: i32) callconv(.c) i32 {
@@ -31,26 +31,18 @@ pub fn __addvdi3(a: i64, b: i64) callconv(.c) i64 {
     return sum;
 }
 
-pub fn __addei3(result_bytes: [*]u8, lhs_bytes: [*]const u8, rhs_bytes: [*]const u8, bits: usize) callconv(.c) void {
-    // const byte_size = std.zig.target.intByteSize(&builtin.target, @intCast(bits));
-    // const byte_size = bits / 8;
+pub fn __addei3(res: [*]u8, l: [*]const u8, r: [*]const u8, bits: usize) callconv(.c) void {
+    const byte_size = std.zig.target.intByteSize(&builtin.target, @intCast(bits));
+    const result: []u32 = @ptrCast(@alignCast(res[0..byte_size]));
+    const lhs: []const u32 = @ptrCast(@alignCast(l[0..byte_size]));
+    const rhs: []const u32 = @ptrCast(@alignCast(r[0..byte_size]));
 
-    _ = result_bytes;
-    _ = lhs_bytes;
-    _ = rhs_bytes;
-    _ = bits;
-
-    // const result: []u32 = @ptrCast(@alignCast(result_bytes[0..byte_size]));
-    // const lhs: []const u32 = @ptrCast(@alignCast(lhs_bytes[0..byte_size]));
-    // const rhs: []const u32 = @ptrCast(@alignCast(rhs_bytes[0..byte_size]));
-
-    @panic("TODO");
-    // var carry: usize = 0;
-    // for (lhs, rhs, 0..) |x, y, i| {
-    //     const sum = @as(usize, x) + @as(usize, y) + carry;
-    //     result[i] = @truncate(sum);
-    //     carry = @intCast(sum >> 32);
-    // }
+    var carry: usize = 0;
+    for (lhs, rhs, 0..) |x, y, i| {
+        const sum = @as(usize, x) + @as(usize, y) + carry;
+        result[i] = @truncate(sum);
+        carry = @intCast(sum >> 32);
+    }
 }
 
 test __addvsi3 {

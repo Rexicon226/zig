@@ -163,6 +163,8 @@ pub const Instruction = packed union {
 
         pub const div: Definition = .{ .opcode = .OP, .funct3 = 0b100, .funct7 = 0b0000001 };
         pub const divu: Definition = .{ .opcode = .OP, .funct3 = 0b101, .funct7 = 0b0000001 };
+        pub const divw: Definition = .{ .opcode = .OP_32, .funct3 = 0b100, .funct7 = 0b0000001 };
+        pub const divuw: Definition = .{ .opcode = .OP_32, .funct3 = 0b101, .funct7 = 0b0000001 };
 
         pub const sll: Definition = .{ .opcode = .OP, .funct3 = 0b001, .funct7 = 0b0000000 };
         pub const srl: Definition = .{ .opcode = .OP, .funct3 = 0b101, .funct7 = 0b0000000 };
@@ -372,8 +374,17 @@ pub const Instruction = packed union {
     pub fn mul(dest: Register, src1: Register, src2: Register) Instruction {
         return R.mul.encode(dest, src1, src2);
     }
+    pub fn div(dest: Register, src1: Register, src2: Register) Instruction {
+        return R.div.encode(dest, src1, src2);
+    }
     pub fn divu(dest: Register, src1: Register, src2: Register) Instruction {
         return R.divu.encode(dest, src1, src2);
+    }
+    pub fn divw(dest: Register, src1: Register, src2: Register) Instruction {
+        return R.divw.encode(dest, src1, src2);
+    }
+    pub fn divuw(dest: Register, src1: Register, src2: Register) Instruction {
+        return R.divuw.encode(dest, src1, src2);
     }
     pub fn sll(dest: Register, src1: Register, src2: Register) Instruction {
         return R.sll.encode(dest, src1, src2);

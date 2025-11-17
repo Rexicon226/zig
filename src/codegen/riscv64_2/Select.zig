@@ -2027,6 +2027,53 @@ pub fn body(isel: *Select, air_body: []const Air.Inst.Index) error{ OutOfMemory,
             }
             if (air.next()) |next_air_tag| continue :air_tag next_air_tag;
         },
+        .div_trunc, .div_trunc_optimized, .div_floor, .div_floor_optimized, .div_exact, .div_exact_optimized => |air_tag| {
+            if (isel.live_values.fetchRemove(air.inst_index)) |res_vi| unused: {
+                defer res_vi.value.deref(isel);
+
+                const bin_op = air.data(air.inst_index).bin_op;
+                const ty = isel.air.typeOf(bin_op.lhs, ip);
+                if (!ty.isRuntimeFloat()) {
+                    if (!ty.isAbiInt(zcu)) return isel.fail("bad {t} {f}", .{ air_tag, isel.fmtType(ty) });
+                    const int_info = ty.intInfo(zcu);
+                    switch (int_info.bits) {
+                        0 => unreachable,
+                        1...64 => |bits| {
+                            const res_reg = try res_vi.value.defReg(isel) orelse break :unused;
+                            const lhs_vi = try isel.use(bin_op.lhs);
+                            const rhs_vi = try isel.use(bin_op.rhs);
+                            const lhs_mat = try lhs_vi.matReg(isel);
+                            const rhs_mat = try rhs_vi.matReg(isel);
+
+                            const div_reg = switch (air_tag) {
+                                else => unreachable,
+                                .div_trunc, .div_exact => res_reg,
+                                .div_floor => return isel.fail("TODO: div floor {f}", .{isel.fmtType(ty)}),
+                            };
+
+                            try isel.emit(switch (bits) {
+                                1...32 => switch (int_info.signedness) {
+                                    .unsigned => .divuw(div_reg, lhs_mat.r, rhs_mat.r),
+                                    .signed => .divw(div_reg, lhs_mat.r, rhs_mat.r),
+                                },
+                                33...64 => switch (int_info.signedness) {
+                                    .unsigned => .div(div_reg, lhs_mat.r, rhs_mat.r),
+                                    .signed => .divw(div_reg, lhs_mat.r, rhs_mat.r),
+                                },
+                                else => unreachable,
+                            });
+
+                            try lhs_mat.finish(isel);
+                            try rhs_mat.finish(isel);
+                        },
+                        else => return isel.fail("TODO: div {t} {f}", .{ air_tag, isel.fmtType(ty) }),
+                    }
+                } else {
+                    return isel.fail("TODO: div float {f}", .{isel.fmtType(ty)});
+                }
+            }
+            if (air.next()) |next_air_tag| continue :air_tag next_air_tag;
+        },
         .shr => |air_tag| {
             if (isel.live_values.fetchRemove(air.inst_index)) |res_vi| unused: {
                 defer res_vi.value.deref(isel);
@@ -2069,9 +2116,6 @@ pub fn body(isel: *Select, air_body: []const Air.Inst.Index) error{ OutOfMemory,
                 if (int_info.bits > 64) return isel.fail("too big: {t} {f}", .{ air_tag, isel.fmtType(ty) });
 
                 const result_vi = res_vi.value;
-                const lhs_vi = try isel.use(bin_op.lhs);
-                const rhs_vi = try isel.use(bin_op.rhs);
-
                 const dst_reg = try result_vi.defReg(isel) orelse break :unused;
                 const dst_lock: RegLock = switch (dst_reg) {
                     .zero => .empty,
@@ -2079,23 +2123,28 @@ pub fn body(isel: *Select, air_body: []const Air.Inst.Index) error{ OutOfMemory,
                 };
                 defer dst_lock.unlock(isel);
 
-                const mask_reg = try isel.allocIntReg();
-                defer isel.freeReg(mask_reg);
-
+                const lhs_vi = try isel.use(bin_op.lhs);
+                const rhs_vi = try isel.use(bin_op.rhs);
                 const lhs_mat = try lhs_vi.matReg(isel);
                 const rhs_mat = try rhs_vi.matReg(isel);
 
+                const mask_reg: Register = .t1;
+                const masked_lhs: Register = .t2;
+                const masked_rhs: Register = .t3;
+
+                // need to lock dst_reg because we write to dst_reg in the xor and then read from
+                // lhs_mat/rhs_mat after that, so we can't override lhs_mat/rhs_mat in the xor.
                 try isel.emit(.xor(dst_reg, switch (air_tag) {
-                    .min => rhs_mat.r,
-                    .max => lhs_mat.r,
+                    .min => masked_rhs,
+                    .max => masked_lhs,
                     else => unreachable,
                 }, mask_reg));
                 try isel.emit(.@"and"(mask_reg, dst_reg, mask_reg));
-                try isel.emit(.xor(dst_reg, lhs_mat.r, rhs_mat.r));
+                try isel.emit(.xor(dst_reg, masked_lhs, masked_rhs));
                 try isel.emit(.sub(mask_reg, .zero, mask_reg));
                 try isel.emit(switch (int_info.signedness) {
-                    .signed => .slt(mask_reg, lhs_mat.r, rhs_mat.r),
-                    .unsigned => .sltu(mask_reg, lhs_mat.r, rhs_mat.r),
+                    .signed => .slt(mask_reg, masked_lhs, masked_rhs),
+                    .unsigned => .sltu(mask_reg, masked_lhs, masked_rhs),
                 });
 
                 try lhs_mat.finish(isel);
@@ -3818,8 +3867,7 @@ fn cmp(
             .{ .signedness = .unsigned, .bits = 64 }
         else
             return isel.fail("bad cmp_{t} {f}", .{ op, isel.fmtType(ty) });
-        if (int_info.bits > 128) return isel.fail("bad cmp_{t} {f}", .{ op, isel.fmtType(ty) });
-        if (int_info.bits > 64 and (op != .eq or op != .neq)) return isel.fail("TODO: cmp_{t} {f}", .{ op, isel.fmtType(ty) });
+        if (int_info.bits > 64) return isel.fail("bad cmp_{t} {f}", .{ op, isel.fmtType(ty) });
 
         const lhs_mat = try lhs_vi.matReg(isel);
         const rhs_mat = try rhs_vi.matReg(isel);
@@ -3829,17 +3877,20 @@ fn cmp(
             .signed => &Instruction.slt,
         };
 
+        const masked_rhs: Register = .t1;
+        const masked_lhs: Register = .t2;
+
         cmp: switch (op) {
             .eq => {
                 try isel.emit(.sltiu(result_reg, result_reg, 1));
-                try isel.emit(.xor(result_reg, lhs_mat.r, rhs_mat.r));
+                try isel.emit(.xor(result_reg, masked_lhs, masked_rhs));
             },
             .neq => {
                 try isel.emit(.sltu(result_reg, .zero, result_reg));
-                try isel.emit(.xor(result_reg, lhs_mat.r, rhs_mat.r));
+                try isel.emit(.xor(result_reg, masked_lhs, masked_rhs));
             },
-            .gt => try isel.emit(less_than(result_reg, rhs_mat.r, lhs_mat.r)),
-            .lt => try isel.emit(less_than(result_reg, lhs_mat.r, rhs_mat.r)),
+            .gt => try isel.emit(less_than(result_reg, masked_rhs, masked_lhs)),
+            .lt => try isel.emit(less_than(result_reg, masked_lhs, masked_rhs)),
             .gte => {
                 try isel.emit(.xori(result_reg, result_reg, 1));
                 continue :cmp .lt;
@@ -3850,10 +3901,49 @@ fn cmp(
             },
         }
 
+        // truncate the input to the proper bit size, we store it unreduced
+        switch (op) {
+            .eq, .neq => {
+                try isel.emit(.@"and"(masked_rhs, rhs_mat.r, masked_rhs));
+                try isel.emit(.@"and"(masked_lhs, lhs_mat.r, masked_rhs));
+                try isel.emit(.srli(masked_rhs, masked_rhs, @intCast(64 - int_info.bits)));
+                try isel.emit(.addi(masked_rhs, .zero, -1));
+            },
+            else => {
+                const N: u6 = @intCast(64 - int_info.bits);
+                try isel.emit(.srai(masked_rhs, masked_rhs, N));
+                try isel.emit(.srai(masked_lhs, masked_lhs, N));
+                try isel.emit(.slli(masked_rhs, rhs_mat.r, N));
+                try isel.emit(.slli(masked_lhs, lhs_mat.r, N));
+            },
+        }
+
         try lhs_mat.finish(isel);
         try rhs_mat.finish(isel);
     } else return isel.fail("TODO: cmp floats", .{});
 }
+
+// fn truncate(
+//     isel: *Select,
+//     result_reg: Register,
+//     src_reg: Register,
+//     ty: ZigType,
+//     opts: struct { compare: bool },
+// ) !void {
+//     const zcu = isel.pt.zcu;
+//     const int_info = ty.intInfo(zcu);
+//     const N: u6 = @intCast(64 - int_info.bits);
+
+//     if (opts.compare) {
+//         try isel.emit(.srli(result_reg, result_reg)
+//         try isel.emit(.addi(result_reg, .zero, -1));
+//     }
+
+//     try isel.emit(.srai(masked_rhs, masked_rhs, N));
+//     try isel.emit(.srai(masked_lhs, masked_lhs, N));
+//     try isel.emit(.slli(masked_rhs, rhs_mat.r, N));
+//     try isel.emit(.slli(masked_lhs, lhs_mat.r, N));
+// }
 
 pub const Value = struct {
     refs: u32,
@@ -4013,10 +4103,17 @@ pub const Value = struct {
                                     .u64 => |imm| try isel.movImmediate(switch (size) {
                                         else => unreachable,
                                         1...8 => mat.r,
-                                    }, @bitCast(std.math.shr(u64, imm, 8 * offset))),
+                                    }, std.math.shr(u64, imm, 8 * offset)),
                                     .i64 => |imm| switch (size) {
                                         else => unreachable,
-                                        1...8 => try isel.movImmediate(mat.r, @bitCast(std.math.shr(i64, imm, 8 * offset))),
+                                        1...4 => {
+                                            const value: u32 = @bitCast(@as(i32, @truncate(std.math.shr(i64, imm, 8 * offset))));
+                                            try isel.movImmediate(mat.r, value);
+                                        },
+                                        5...8 => {
+                                            const value: u64 = @bitCast(std.math.shr(i64, imm, 8 * offset));
+                                            try isel.movImmediate(mat.r, value);
+                                        },
                                     },
                                     .big_int => |big_int| {
                                         assert(size == 8);
@@ -4964,14 +5061,20 @@ pub const Value = struct {
 
             if (need_wrap and int_info.bits != 64) {
                 // mask the result with (1 << N) - 1
-                try isel.emit(.@"and"(result_reg, result_reg, .t1));
-                try isel.emit(.srli(.t1, .t1, @intCast(64 - int_info.bits)));
-                try isel.emit(.addi(.t1, .zero, -1));
+                // try isel.emit(.@"and"(result_reg, result_reg, .t1));
+                // try isel.emit(.srli(.t1, .t1, @intCast(64 - int_info.bits)));
+                // try isel.emit(.addi(.t1, .zero, -1));
             }
 
             try isel.emit(switch (op) {
-                .add => .add(result_reg, lhs_mat.r, rhs_mat.r),
-                .sub => .sub(result_reg, lhs_mat.r, rhs_mat.r),
+                .add => switch (int_info.bits) {
+                    else => .add(result_reg, lhs_mat.r, rhs_mat.r),
+                    32 => .addw(result_reg, lhs_mat.r, rhs_mat.r),
+                },
+                .sub => switch (int_info.bits) {
+                    else => .sub(result_reg, lhs_mat.r, rhs_mat.r),
+                    32 => .subw(result_reg, lhs_mat.r, rhs_mat.r),
+                },
             });
 
             try rhs_mat.finish(isel);

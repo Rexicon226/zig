@@ -474,7 +474,24 @@ fn eqlIgnoreCase(ignore_case: bool, a: []const u8, b: []const u8) bool {
     }
 }
 
-pub fn intByteSize(target: *const std.Target, bits: u16) u16 {
+const T = switch (builtin.zig_backend) {
+    .stage2_riscv64 => u64,
+    else => u16,
+};
+pub fn intByteSize(target: *const std.Target, bits: T) T {
+    if (builtin.zig_backend == .stage2_riscv64) {
+        // TODO: remove when riscv64 backend supports clz
+        if (bits <= 8) return 1;
+        if (bits <= 16) return 2;
+        if (bits <= 32) return 4;
+        if (bits <= 64) return 8;
+        if (bits <= 128) return 16;
+        if (bits <= 256) return 32;
+        if (bits <= 384) return 48;
+        if (bits <= 512) return 64;
+        unreachable;
+    }
+
     const previous_aligned = std.mem.alignBackward(u16, bits, 8);
     return std.mem.alignForward(u16, @divExact(previous_aligned, 8) + @intFromBool(previous_aligned != bits), intAlignment(target, bits));
 }

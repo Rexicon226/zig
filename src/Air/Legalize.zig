@@ -3390,7 +3390,6 @@ fn softFloatCmpBlockPayload(
 fn bigIntBlockPayload(l: *Legalize, orig_inst: Air.Inst.Index) Error!Air.Inst.Data {
     const pt = l.pt;
     const zcu = pt.zcu;
-
     const gpa = zcu.gpa;
 
     const orig = l.air_instructions.get(@intFromEnum(orig_inst));
@@ -3401,25 +3400,37 @@ fn bigIntBlockPayload(l: *Legalize, orig_inst: Air.Inst.Index) Error!Air.Inst.Da
         .cmp_lte,
         .cmp_gt,
         .cmp_gte,
-        => {
-            const bin_op = orig.data.bin_op;
-            const ty = l.typeOf(bin_op.lhs);
-            return try l.bigIntCmpBlockPayload(orig_inst, ty, orig.tag, bin_op.lhs, bin_op.rhs);
-        },
         .add,
         => {
             const bin_op = orig.data.bin_op;
             const ty = l.typeOf(bin_op.lhs);
             const int_info = ty.intInfo(zcu);
 
-            const func: Air.CompilerRtFunc = switch (orig.tag) {
-                .add => .__addei3,
+            const func: Air.CompilerRtFunc, //
+            const pattern: enum { a_b_i32, r_a_b_void }, //
+            const size: u32 = switch (orig.tag) {
+                .add => .{ .__addei3, .r_a_b_void, 6 },
+                .cmp_eq,
+                .cmp_neq,
+                .cmp_lt,
+                .cmp_lte,
+                .cmp_gt,
+                .cmp_gte,
+                => .{ switch (int_info.signedness) {
+                    .unsigned => .__ucmpei2,
+                    .signed => .__cmpei2,
+                }, .a_b_i32, 3 },
                 else => unreachable,
             };
 
-            var inst_buf: [11]Air.Inst.Index = undefined;
-            var main_block: Block = .init(&inst_buf);
+            var sfba_state = std.heap.stackFallback(@sizeOf([6 + 6]Air.Inst.Index), gpa);
+            const sfba = sfba_state.get();
+
+            const inst_buf = try sfba.alloc(Air.Inst.Index, 6 + size);
+            var main_block: Block = .init(inst_buf);
             try l.air_instructions.ensureUnusedCapacity(gpa, inst_buf.len);
+
+            const bits_value: Air.Inst.Ref = .fromValue(try pt.intValue(.usize, int_info.bits));
 
             // The extended integer routines expect the integer representation where the integer is
             // effectively zero- or sign-extended to its ABI size. We represent that by intcasting to
@@ -3445,85 +3456,56 @@ fn bigIntBlockPayload(l: *Legalize, orig_inst: Air.Inst.Index) Error!Air.Inst.Da
             const extended_rhs_ptr = main_block.addTy(l, .alloc, try pt.singleConstPtrType(extended_ty)).toRef();
             _ = main_block.addBinOp(l, .store, extended_rhs_ptr, extended_rhs_val);
 
-            const result_ptr = main_block.addTy(l, .alloc, try pt.singleMutPtrType(extended_ty)).toRef();
-            const bits_val = try pt.intValue(.usize, int_info.bits);
+            switch (pattern) {
+                .a_b_i32 => {
+                    const order = try main_block.addCompilerRtCall(l, func, &.{
+                        extended_lhs_ptr,
+                        extended_rhs_ptr,
+                        bits_value,
+                    });
+                    const expected: Air.Inst.Ref = .fromValue(try pt.intValue(.i32, @as(i32, switch (orig.tag) {
+                        .cmp_eq, .cmp_neq => 0,
+                        .cmp_lt, .cmp_gte => -1,
+                        .cmp_lte, .cmp_gt => 1,
+                        else => unreachable,
+                    })));
+                    const result = main_block.addBinOp(l, switch (orig.tag) {
+                        .cmp_eq, .cmp_neq => orig.tag,
+                        .cmp_lt, .cmp_gt => .cmp_eq,
+                        .cmp_lte, .cmp_gte => .cmp_neq,
+                        else => unreachable,
+                    }, order.toRef(), expected);
+                    main_block.addBr(l, orig_inst, result.toRef());
 
-            // routine(ret, lhs, rhs, bits)
-            _ = try main_block.addCompilerRtCall(l, func, &.{
-                result_ptr,
-                extended_lhs_ptr,
-                extended_rhs_ptr,
-                .fromValue(bits_val),
-            });
+                    return .{ .ty_pl = .{
+                        .ty = .bool_type,
+                        .payload = try l.addBlockBody(main_block.body()),
+                    } };
+                },
+                .r_a_b_void => {
+                    const result_ptr = main_block.addTy(l, .alloc, try pt.singleMutPtrType(extended_ty)).toRef();
 
-            // load back from the result and intcast it to the original destination type
-            const result_value = main_block.addTyOp(l, .load, extended_ty, result_ptr).toRef();
-            const casted_result = main_block.addTyOp(l, .intcast, ty, result_value).toRef();
-            main_block.addBr(l, orig_inst, casted_result);
+                    _ = try main_block.addCompilerRtCall(l, func, &.{
+                        result_ptr,
+                        extended_lhs_ptr,
+                        extended_rhs_ptr,
+                        bits_value,
+                    });
 
-            return .{ .ty_pl = .{
-                .ty = .fromType(ty),
-                .payload = try l.addBlockBody(main_block.body()),
-            } };
+                    // load back from the result and intcast it to the original destination type
+                    const result_value = main_block.addTyOp(l, .load, extended_ty, result_ptr).toRef();
+                    const casted_result = main_block.addTyOp(l, .intcast, ty, result_value).toRef();
+                    main_block.addBr(l, orig_inst, casted_result);
+
+                    return .{ .ty_pl = .{
+                        .ty = .fromType(ty),
+                        .payload = try l.addBlockBody(main_block.body()),
+                    } };
+                },
+            }
         },
         else => unreachable,
     }
-}
-
-fn bigIntCmpBlockPayload(
-    l: *Legalize,
-    orig_inst: Air.Inst.Index,
-    int_ty: Type,
-    air_tag: Air.Inst.Tag,
-    lhs: Air.Inst.Ref,
-    rhs: Air.Inst.Ref,
-) Error!Air.Inst.Data {
-    const pt = l.pt;
-    const zcu = pt.zcu;
-    const gpa = zcu.gpa;
-    const int_info = int_ty.intInfo(zcu);
-
-    var inst_buf: [2 * 3 + 3]Air.Inst.Index = undefined;
-    var main_block: Block = .init(&inst_buf);
-    try l.air_instructions.ensureUnusedCapacity(gpa, inst_buf.len);
-
-    // move into an alloc so that we can load the individual limbs
-    const ptr_ty = try pt.singleConstPtrType(int_ty);
-    const many_usize_ty = try pt.manyConstPtrType(.usize);
-
-    const lhs_alloc = main_block.addTy(l, .alloc, ptr_ty).toRef();
-    _ = main_block.addBinOp(l, .store, lhs_alloc, lhs);
-    const lhs_limbs = main_block.addTyOp(l, .bitcast, many_usize_ty, lhs_alloc).toRef();
-
-    const rhs_alloc = main_block.addTy(l, .alloc, ptr_ty).toRef();
-    _ = main_block.addBinOp(l, .store, rhs_alloc, rhs);
-    const rhs_limbs = main_block.addTyOp(l, .bitcast, many_usize_ty, rhs_alloc).toRef();
-
-    const compiler_rt_call: Air.CompilerRtFunc = switch (int_info.signedness) {
-        .unsigned => .__ucmpei2,
-        .signed => .__cmpei2,
-    };
-    const bits_value: Air.Inst.Ref = .fromValue(try pt.intValue(.usize, int_info.bits));
-    const order = try main_block.addCompilerRtCall(l, compiler_rt_call, &.{ lhs_limbs, rhs_limbs, bits_value });
-
-    const expected: Air.Inst.Ref = .fromValue(try pt.intValue(.i32, @as(i32, switch (air_tag) {
-        .cmp_eq, .cmp_neq => 0,
-        .cmp_lt, .cmp_gte => -1,
-        .cmp_lte, .cmp_gt => 1,
-        else => unreachable,
-    })));
-    const result = main_block.addBinOp(l, switch (air_tag) {
-        .cmp_eq, .cmp_neq => air_tag,
-        .cmp_lt, .cmp_gt => .cmp_eq,
-        .cmp_lte, .cmp_gte => .cmp_neq,
-        else => unreachable,
-    }, order.toRef(), expected);
-    main_block.addBr(l, orig_inst, result.toRef());
-
-    return .{ .ty_pl = .{
-        .ty = .bool_type,
-        .payload = try l.addBlockBody(main_block.body()),
-    } };
 }
 
 /// `inline` to propagate potentially comptime-known return value.

@@ -71,37 +71,37 @@ fn binary(comptime op: anytype, opts: struct { compare: Compare = .relaxed }) ty
         }
 
         fn testInts() !void {
-            // try testArgs(i1, 0x0, -0x1);
-            // try testArgs(u1, 0x1, 0x1);
-            // try testArgs(i2, 0x0, -0x2);
-            // try testArgs(u2, 0x2, 0x1);
-            // try testArgs(i3, 0x1, -0x3);
-            // try testArgs(u3, 0x6, 0x1);
-            // try testArgs(i4, 0x6, 0x3);
-            // try testArgs(u4, 0x8, 0x5);
-            // try testArgs(i5, -0x9, -0xd);
-            // try testArgs(u5, 0x5, 0x13);
-            // try testArgs(i7, 0x34, 0x1d);
-            // try testArgs(u7, 0x31, 0x56);
-            // try testArgs(i8, -0x57, -0x70);
-            // try testArgs(u8, 0x12, 0xd6);
-            // try testArgs(i9, -0x8a, -0xa0);
-            // try testArgs(u9, 0xf8, 0x95);
-            // try testArgs(i15, -0x790, 0x116f);
-            // try testArgs(u15, 0x548b, 0x4cd6);
-            // try testArgs(i16, -0x2d17, -0x5c17);
-            // try testArgs(u16, 0xadc0, 0xb223);
-            // try testArgs(i17, 0xe543, 0xaad5);
-            // try testArgs(u17, 0x9515, 0xa3c1);
-            // try testArgs(i31, -0x28858a2f, 0x369e917a);
-            // try testArgs(u31, 0x32bab794, 0x75464e7f);
-            // try testArgs(i32, 0x79e74e44, 0x61fe4ab1);
-            // try testArgs(u32, 0xc82f8e2, 0x5dde37e2);
-            // try testArgs(i33, -0xa4cbaa13, -0x4d20ee61);
-            // try testArgs(u33, 0x17461d437, 0x16cbc228f);
+            try testArgs(i1, 0x0, -0x1);
+            try testArgs(u1, 0x1, 0x1);
+            try testArgs(i2, 0x0, -0x2);
+            try testArgs(u2, 0x2, 0x1);
+            try testArgs(i3, 0x1, -0x3);
+            try testArgs(u3, 0x6, 0x1);
+            try testArgs(i4, 0x6, 0x3);
+            try testArgs(u4, 0x8, 0x5);
+            try testArgs(i5, -0x9, -0xd);
+            try testArgs(u5, 0x5, 0x13);
+            try testArgs(i7, 0x34, 0x1d);
+            try testArgs(u7, 0x31, 0x56);
+            try testArgs(i8, -0x57, -0x70);
+            try testArgs(u8, 0x12, 0xd6);
+            try testArgs(i9, -0x8a, -0xa0);
+            try testArgs(u9, 0xf8, 0x95);
+            try testArgs(i15, -0x790, 0x116f);
+            try testArgs(u15, 0x548b, 0x4cd6);
+            try testArgs(i16, -0x2d17, -0x5c17);
+            try testArgs(u16, 0xadc0, 0xb223);
+            try testArgs(i17, 0xe543, 0xaad5);
+            try testArgs(u17, 0x9515, 0xa3c1);
+            try testArgs(i31, -0x28858a2f, 0x369e917a);
+            try testArgs(u31, 0x32bab794, 0x75464e7f);
+            try testArgs(i32, 0x79e74e44, 0x61fe4ab1);
+            try testArgs(u32, 0xc82f8e2, 0x5dde37e2);
+            try testArgs(i33, -0xa4cbaa13, -0x4d20ee61);
+            try testArgs(u33, 0x17461d437, 0x16cbc228f);
             try testArgs(i63, -0x1, 0);
-            // try testArgs(i63, 0x333220e16b1e53fb, 0x121a0d970a5a4504);
-            // try testArgs(u63, 0x2dcd94e2ae4aa2af, 0x5f401e6e287a4dd7);
+            try testArgs(i63, 0x333220e16b1e53fb, 0x121a0d970a5a4504);
+            try testArgs(u63, 0x2dcd94e2ae4aa2af, 0x5f401e6e287a4dd7);
             // try testArgs(i64, 0x17e6bb7d8d430410, 0x760d42736f4b445c);
             // try testArgs(u64, 0x430970421452be50, 0xb4b5e96f4183b5fc);
             // try testArgs(i65, 0xb4477484679a6576, 0x21c9a3100d35de49);
@@ -222,30 +222,62 @@ noinline fn checkExpected(expected: anytype, actual: @TypeOf(expected), comptime
     }) return error.Unexpected;
 }
 
-// inline fn equal(comptime Type: type, lhs: Type, rhs: Type) ChangeScalar(Type, bool) {
-//     return lhs == rhs;
-// }
-// test equal {
-//     const test_equal = binary(equal, .{});
-//     try test_equal.testInts();
-// }
+inline fn equal(comptime Type: type, lhs: Type, rhs: Type) ChangeScalar(Type, bool) {
+    return lhs == rhs;
+}
+test equal {
+    const test_equal = binary(equal, .{});
+    try test_equal.testInts();
+}
 
-// inline fn notEqual(comptime Type: type, lhs: Type, rhs: Type) ChangeScalar(Type, bool) {
-//     return lhs != rhs;
-// }
-// test notEqual {
-//     const test_not_equal = binary(notEqual, .{});
-//     try test_not_equal.testInts();
-// }
+inline fn notEqual(comptime Type: type, lhs: Type, rhs: Type) ChangeScalar(Type, bool) {
+    return lhs != rhs;
+}
+test notEqual {
+    const test_not_equal = binary(notEqual, .{});
+    try test_not_equal.testInts();
+}
 
-// inline fn addUnsafe(comptime Type: type, lhs: Type, rhs: Type) AddOneBit(Type) {
-//     @setRuntimeSafety(false);
-//     return @as(AddOneBit(Type), lhs) + rhs;
-// }
-// test addUnsafe {
-//     const test_add_unsafe = binary(addUnsafe, .{});
-//     try test_add_unsafe.testInts();
-// }
+inline fn lessThan(comptime Type: type, lhs: Type, rhs: Type) ChangeScalar(Type, bool) {
+    return lhs < rhs;
+}
+test lessThan {
+    const test_less_than = binary(lessThan, .{});
+    try test_less_than.testInts();
+}
+
+inline fn lessThanEqual(comptime Type: type, lhs: Type, rhs: Type) ChangeScalar(Type, bool) {
+    return lhs <= rhs;
+}
+test lessThanEqual {
+    const test_less_than = binary(lessThanEqual, .{});
+    try test_less_than.testInts();
+}
+
+inline fn greaterThan(comptime Type: type, lhs: Type, rhs: Type) ChangeScalar(Type, bool) {
+    return lhs > rhs;
+}
+test greaterThan {
+    const test_less_than = binary(greaterThan, .{});
+    try test_less_than.testInts();
+}
+
+inline fn greatThanEqual(comptime Type: type, lhs: Type, rhs: Type) ChangeScalar(Type, bool) {
+    return lhs >= rhs;
+}
+test greatThanEqual {
+    const test_less_than = binary(greatThanEqual, .{});
+    try test_less_than.testInts();
+}
+
+inline fn addUnsafe(comptime Type: type, lhs: Type, rhs: Type) AddOneBit(Type) {
+    @setRuntimeSafety(false);
+    return @as(AddOneBit(Type), lhs) + rhs;
+}
+test addUnsafe {
+    const test_add_unsafe = binary(addUnsafe, .{});
+    try test_add_unsafe.testInts();
+}
 
 inline fn addWrap(comptime Type: type, lhs: Type, rhs: Type) Type {
     return lhs +% rhs;
@@ -255,13 +287,29 @@ test addWrap {
     try test_add_wrap.testInts();
 }
 
-// inline fn addWithOverflow(comptime Type: type, lhs: Type, rhs: Type) struct { Type, ChangeScalar(Type, u1) } {
-//     return @addWithOverflow(lhs, rhs);
-// }
-// test addWithOverflow {
-//     const test_add_with_overflow = binary(addWithOverflow, .{});
-//     try test_add_with_overflow.testInts();
-// }
+// // inline fn addWithOverflow(comptime Type: type, lhs: Type, rhs: Type) struct { Type, ChangeScalar(Type, u1) } {
+// //     return @addWithOverflow(lhs, rhs);
+// // }
+// // test addWithOverflow {
+// //     const test_add_with_overflow = binary(addWithOverflow, .{});
+// //     try test_add_with_overflow.testInts();
+// // }
+
+inline fn max(comptime Type: type, lhs: Type, rhs: Type) Type {
+    return @max(lhs, rhs);
+}
+test max {
+    const test_max = binary(max, .{});
+    try test_max.testInts();
+}
+
+inline fn min(comptime Type: type, lhs: Type, rhs: Type) Type {
+    return @min(lhs, rhs);
+}
+test min {
+    const test_min = binary(min, .{});
+    try test_min.testInts();
+}
 
 // inline fn subUnsafe(comptime Type: type, lhs: Type, rhs: Type) AddOneBit(Type) {
 //     @setRuntimeSafety(false);
@@ -279,53 +327,21 @@ test addWrap {
 //     try test_sub_unsafe.testInts();
 // }
 
-// inline fn max(comptime Type: type, lhs: Type, rhs: Type) Type {
-//     return @max(lhs, rhs);
-// }
-// test max {
-//     const test_max = binary(max, .{});
-//     try test_max.testInts();
-// }
+inline fn subWrap(comptime Type: type, lhs: Type, rhs: Type) Type {
+    return lhs -% rhs;
+}
+test subWrap {
+    const test_add_wrap = binary(subWrap, .{});
+    try test_add_wrap.testInts();
+}
 
-// inline fn min(comptime Type: type, lhs: Type, rhs: Type) Type {
-//     return @min(lhs, rhs);
-// }
-// test min {
-//     const test_min = binary(min, .{});
-//     try test_min.testInts();
-// }
-
-// inline fn lessThan(comptime Type: type, lhs: Type, rhs: Type) ChangeScalar(Type, bool) {
-//     return lhs < rhs;
-// }
-// test lessThan {
-//     const test_less_than = binary(lessThan, .{});
-//     try test_less_than.testInts();
-// }
-
-// inline fn lessThanEqual(comptime Type: type, lhs: Type, rhs: Type) ChangeScalar(Type, bool) {
-//     return lhs <= rhs;
-// }
-// test lessThanEqual {
-//     const test_less_than = binary(lessThanEqual, .{});
-//     try test_less_than.testInts();
-// }
-
-// inline fn greaterThan(comptime Type: type, lhs: Type, rhs: Type) ChangeScalar(Type, bool) {
-//     return lhs > rhs;
-// }
-// test greaterThan {
-//     const test_less_than = binary(greaterThan, .{});
-//     try test_less_than.testInts();
-// }
-
-// inline fn greatThanEqual(comptime Type: type, lhs: Type, rhs: Type) ChangeScalar(Type, bool) {
-//     return lhs >= rhs;
-// }
-// test greatThanEqual {
-//     const test_less_than = binary(greatThanEqual, .{});
-//     try test_less_than.testInts();
-// }
+// // inline fn subWithOverflow(comptime Type: type, lhs: Type, rhs: Type) struct { Type, ChangeScalar(Type, u1) } {
+// //     return @subWithOverflow(lhs, rhs);
+// // }
+// // test subWithOverflow {
+// //     const test_add_with_overflow = binary(subWithOverflow, .{});
+// //     try test_add_with_overflow.testInts();
+// // }
 
 // inline fn bitAnd(comptime Type: type, lhs: Type, rhs: Type) Type {
 //     return lhs & rhs;
